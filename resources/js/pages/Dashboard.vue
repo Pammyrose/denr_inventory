@@ -40,19 +40,19 @@ const dashboardData = {
         <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4 overflow-x-auto">
             <!-- First Row: 4-column grid -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div class="bg-[#ef4444] rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex flex-col items-center justify-between h-24">
-                    <h3 class="text-lg font-semibold text-gray-100 ">Employees</h3>
+                <div class="bg-[#ef4444] rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex flex-col items-center justify-between h-24 hover:shadow-lg hover:scale-105 hover:brightness-105 transition duration-300">
+                    <h3 class="text-lg font-semibold text-gray-100">Employees</h3>
                     <span class="text-2xl font-bold text-gray-100">{{ dashboardData.employees }}</span>
                 </div>
-                <div class="bg-[#f59e0b] rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex flex-col items-center justify-between h-24">
+                <div class="bg-[#f59e0b] rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex flex-col items-center justify-between h-24 hover:shadow-lg hover:scale-105 hover:brightness-105 transition duration-300">
                     <h3 class="text-lg font-semibold text-gray-100">Users</h3>
                     <span class="text-2xl font-bold text-gray-100">{{ dashboardData.users }}</span>
                 </div>
-                <div class="bg-[#10b981] rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex flex-col items-center justify-between h-24">
+                <div class="bg-[#10b981] rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex flex-col items-center justify-between h-24 hover:shadow-lg hover:scale-105 hover:brightness-105 transition duration-300">
                     <h3 class="text-lg font-semibold text-gray-100">Assigned Assets</h3>
                     <span class="text-2xl font-bold text-gray-100">{{ dashboardData.assignedAssets }}</span>
                 </div>
-                <div class="bg-[#3b82f6] rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex flex-col items-center justify-between h-24">
+                <div class="bg-[#3b82f6] rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4 flex flex-col items-center justify-between h-24 hover:shadow-lg hover:scale-105 hover:brightness-105 transition duration-300">
                     <h3 class="text-lg font-semibold text-gray-100">Assets</h3>
                     <span class="text-2xl font-bold text-gray-100">{{ dashboardData.assets }}</span>
                 </div>
