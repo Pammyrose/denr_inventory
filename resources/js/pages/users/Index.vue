@@ -1,4 +1,3 @@
-
 <script setup lang="ts">
 import { ref } from 'vue';
 import Button from '@/components/ui/button/Button.vue';
@@ -6,6 +5,20 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import Create from './Create.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
+
+// Define the User interface
+interface User {
+    id: number;
+    name: string;
+    email: string;
+}
+
+// Define props for users
+interface Props {
+    users: User[];
+}
+
+const props = defineProps<Props>();
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -73,81 +86,40 @@ const closeModal = () => {
                 </div>
             </div>
 
-            <!-- Employee table -->
-            
-
-<div class="relative overflow-x-auto shadow-md sm:rounded-lg mt-4">
-    <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-            <tr>
-                <th scope="col" class="px-6 py-3">
-                    No
-                </th>
-                <th scope="col" class="px-6 py-3">
-                    Name
-                </th>
-                <th scope="col" class="px-6 py-3">
-                    Email
-                </th>
-                <th scope="col" class="px-6 py-3 text-center">
-                    Action
-                </th>
-
-            </tr>
-        </thead>
-        <tbody>
-            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
-                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                    1
-                </th>
-                <td class="px-6 py-4">
-                    Pamela
-                </td>
-                <td class="px-6 py-4">
-                    emalasan37@gmail.com
-                </td>
-                <td class="px-6 py-4 flex justify-center items-center gap-2">
-                    <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Edit</a>
-                    <a href="#" class="font-medium text-green-600 dark:text-green-500 hover:underline">View</a>
-                    <a href="#" class="font-medium text-red-600 dark:text-red-500 hover:underline">Delete</a>
-                </td>
-            </tr>
-            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
-                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                    2
-                </th>
-                <td class="px-6 py-4">
-                    Lea
-                </td>
-                <td class="px-6 py-4">
-                    lea.flores@gmail.com
-                </td>
-                <td class="px-6 py-4 flex justify-center items-center gap-2">
-                    <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Edit</a>
-                    <a href="#" class="font-medium text-green-600 dark:text-green-500 hover:underline">View</a>
-                    <a href="#" class="font-medium text-red-600 dark:text-red-500 hover:underline">Delete</a>
-                </td>
-            </tr>
-            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
-                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                    3
-                </th>
-                <td class="px-6 py-4">
-                    Ange
-                </td>
-                <td class="px-6 py-4">
-                    Ange.deguzman@gmail.com
-                </td>
-                <td class="px-6 py-4 flex justify-center items-center gap-2">
-                    <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Edit</a>
-                    <a href="#" class="font-medium text-green-600 dark:text-green-500 hover:underline">View</a>
-                    <a href="#" class="font-medium text-red-600 dark:text-red-500 hover:underline">Delete</a>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-</div>
-
+            <!-- Users table -->
+            <div class="relative overflow-x-auto shadow-md sm:rounded-lg mt-4">
+                <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">No</th>
+                            <th scope="col" class="px-6 py-3">Name</th>
+                            <th scope="col" class="px-6 py-3">Email</th>
+                            <th scope="col" class="px-6 py-3 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr
+                            v-for="(user, index) in props.users"
+                            :key="user.id"
+                            class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600"
+                        >
+                            <th
+                                scope="row"
+                                class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
+                            >
+                                {{ index + 1 }}
+                            </th>
+                            <td class="px-6 py-4">{{ user.name }}</td>
+                            <td class="px-6 py-4">{{ user.email }}</td>
+                            <td class="px-6 py-4 flex justify-center items-center gap-2">
+                                <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Edit</a>
+                                <a href="#" class="font-medium text-green-600 dark:text-green-500 hover:underline">View</a>
+                                <a href="#" class="font-medium text-red-600 dark:text-red-500 hover:underline">Delete</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </AppLayout>
 </template>

@@ -1,11 +1,33 @@
-
 <script setup lang="ts">
 import { ref } from 'vue';
 import Button from '@/components/ui/button/Button.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Create from './Create.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
+
+// Define the Inventory interface
+interface InventoryItem {
+    id: string;
+    name: string;
+    category: string;
+    location: string;
+    purchase_date: string;
+    value: string;
+    condition: string;
+    assigned_to: string;
+    status: string;
+}
+
+// Define props for inventory items
+interface Props {
+    assets: InventoryItem[];
+}
+
+
+const props = defineProps<Props>();
+
+const page = usePage();
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -31,6 +53,11 @@ const closeModal = () => {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-4">
+            <!-- Flash message -->
+            <div v-if="page.props.flash?.message" class="alert">
+                {{ page.props.flash.message }}
+            </div>
+
             <!-- Create button -->
             <Button
                 @click="openModal"
@@ -73,152 +100,95 @@ const closeModal = () => {
                 </div>
             </div>
 
-            <!-- Employee table -->
-            
-
-<div class="relative overflow-x-auto shadow-md sm:rounded-lg mt-4">
-    <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-            <tr>
-                <th scope="col" class="px-4 py-3">
-                    Asset ID
-                </th>
-                <th scope="col" class="px-4 py-3 text-center">
-                    Name
-                </th>
-                <th scope="col" class="px-4 py-3 text-center">
-                    Category
-                </th>
-                <th scope="col" class="px-4 py-3 text-center">
-                    Location
-                </th>
-                <th scope="col" class="px-4 py-3 text-center">
-                    Purchase Date
-                </th>
-                <th scope="col" class="px-4 py-3 text-center">
-                    Value
-                </th>
-                <th scope="col" class="px-4 py-3 text-center">
-                    Condition
-                </th>
-                <th scope="col" class="px-4 py-3 text-center">
-                    Assigned To
-                </th>
-                <th scope="col" class="px-4 py-3 text-center">
-                    Status
-                </th>
-                <th scope="col" class="px-4 py-3 text-center">
-                    Action
-                </th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
-                <th scope="row" class="px-4 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                    A0001
-                </th>
-                <td class="px-4 py-4 text-center">
-                    Laptop
-                </td>
-                <td class="px-4 py-4 text-center">
-                    IT
-                </td>
-                <td class="px-4 py-4 text-center">
-                    PMD
-                </td>
-                <td class="px-4 py-4 text-center">
-                    02/12/2025
-                </td>
-                <td class="px-4 py-4 text-center">
-                    P32,000
-                </td>
-                <td class="px-4 py-4 text-center">
-                    Old
-                </td>
-                <td class="px-4 py-4 text-center">
-                    Pam
-                </td>
-                <td class="px-4 py-4 text-center">
-                    <span class="text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-5 py-1.5 text-center me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Check</span>
-                </td>
-                <td class="px-4 py-4 flex justify-center items-center gap-2">
-                    <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Edit</a>
-                    <a href="#" class="font-medium text-green-600 dark:text-green-500 hover:underline">View</a>
-                    <a href="#" class="font-medium text-red-600 dark:text-red-500 hover:underline">Delete</a>
-                </td>
-            </tr>
-            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
-                <th scope="row" class="px-4 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                    A0001
-                </th>
-                <td class="px-4 py-4 text-center">
-                    Laptop
-                </td>
-                <td class="px-4 py-4 text-center">
-                    IT
-                </td>
-                <td class="px-4 py-4 text-center">
-                    PMD
-                </td>
-                <td class="px-4 py-4 text-center">
-                    02/12/2025
-                </td>
-                <td class="px-4 py-4 text-center">
-                    P32,000
-                </td>
-                <td class="px-4 py-4 text-center">
-                    New
-                </td>
-                <td class="px-4 py-4 text-center">
-                    Pam
-                </td>
-                <td class="px-4 py-4 text-center">
-                    <span class="text-white bg-green-600 hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-5 py-1.5 text-center me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Repair</span>
-                </td>
-                <td class="px-4 py-4 flex justify-center items-center gap-2">
-                    <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Edit</a>
-                    <a href="#" class="font-medium text-green-600 dark:text-green-500 hover:underline">View</a>
-                    <a href="#" class="font-medium text-red-600 dark:text-red-500 hover:underline">Delete</a>
-                </td>
-            </tr>
-            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
-                <th scope="row" class="px-4 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                    A0001
-                </th>
-                <td class="px-4 py-4 text-center">
-                    Laptop
-                </td>
-                <td class="px-4 py-4 text-center">
-                    IT
-                </td>
-                <td class="px-4 py-4 text-center">
-                    PMD
-                </td>
-                <td class="px-4 py-4 text-center">
-                    02/12/2025
-                </td>
-                <td class="px-4 py-4 text-center">
-                    P32,000
-                </td>
-                <td class="px-4 py-4 text-center">
-                    Working
-                </td>
-                <td class="px-4 py-4 text-center">
-                    Pam
-                </td>
-                <td class="px-4 py-4 text-center justify-center items-center">
-    <span class="text-white bg-blue-700 hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 font-medium rounded-full text-sm px-3 py-1.5 text-center me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Upgrade</span>
-</td>
-                <td class="px-4 py-4 flex justify-center items-center gap-2">
-                    <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Edit</a>
-                    <a href="#" class="font-medium text-green-600 dark:text-green-500 hover:underline">View</a>
-                    <a href="#" class="font-medium text-red-600 dark:text-red-500 hover:underline">Delete</a>
-                </td>
-            </tr>
-        </tbody>
-    </table>
-</div>
-
+            <!-- Inventory table -->
+            <div class="relative overflow-x-auto shadow-md sm:rounded-lg mt-4">
+                <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th scope="col" class="px-4 py-3">
+                                Asset ID
+                            </th>
+                            <th scope="col" class="px-4 py-3 text-center">
+                                Name
+                            </th>
+                            <th scope="col" class="px-4 py-3 text-center">
+                                Category
+                            </th>
+                            <th scope="col" class="px-4 py-3 text-center">
+                                Location
+                            </th>
+                            <th scope="col" class="px-4 py-3 text-center">
+                                Purchase Date
+                            </th>
+                            <th scope="col" class="px-4 py-3 text-center">
+                                Value
+                            </th>
+                            <th scope="col" class="px-4 py-3 text-center">
+                                Condition
+                            </th>
+                            <th scope="col" class="px-4 py-3 text-center">
+                                Assigned To
+                            </th>
+                            <th scope="col" class="px-4 py-3 text-center">
+                                Status
+                            </th>
+                            <th scope="col" class="px-4 py-3 text-center">
+                                Action
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="item in props.assets" :key="item.id"
+                            class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600"
+                        >
+                            <th
+                                scope="row"
+                                class="px-4 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
+                            >
+                                {{ item.id }}
+                            </th>
+                            <td class="px-4 py-4 text-center">
+                                {{ item.name }}
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                {{ item.category }}
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                {{ item.location }}
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                {{ item.purchase_date }}
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                {{ item.value }}
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                {{ item.condition }}
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                {{ item.assigned_to }}
+                            </td>
+                            <td class="px-4 py-4 text-center">
+                                <span
+                                    :class="{
+                                        'text-white bg-red-700 hover:bg-red-800': item.status === 'Check',
+                                        'text-white bg-green-600 hover:bg-green-800': item.status === 'Repair',
+                                        'text-white bg-blue-700 hover:bg-blue-800': item.status === 'Upgrade',
+                                    }"
+                                    class="font-medium rounded-full text-sm px-5 py-1.5 text-center me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300"
+                                >
+                                    {{ item.status }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-4 flex justify-center items-center gap-2">
+                                <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Edit</a>
+                                <a href="#" class="font-medium text-green-600 dark:text-green-500 hover:underline">View</a>
+                                <a href="#" class="font-medium text-red-600 dark:text-red-500 hover:underline">Delete</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </AppLayout>
 </template>

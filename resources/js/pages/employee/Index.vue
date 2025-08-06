@@ -5,7 +5,29 @@ import Button from '@/components/ui/button/Button.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Create from './Create.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
+import { Head, usePage } from '@inertiajs/vue3';
+
+interface Employees{
+    id: number,
+    first_name: string,
+    middle_name: string,
+    last_name: string,
+    suffix: string,
+    sex: string,
+    email: string,
+    emp_status: string,
+    position_name: string,
+    assignment_name: string,
+
+}
+
+interface Props{
+    employees: Employees[];
+}
+
+const props = defineProps<Props>();
+
+const page = usePage()
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -75,8 +97,11 @@ const closeModal = () => {
 
             <!-- Employee table -->
             
+            <div v-if="page.props.flash?.message" class="alert">
+        {{ page.props.flash.message }}
+      </div>
 
-<div class="relative overflow-x-auto shadow-md sm:rounded-lg mt-4">
+      <div class="relative overflow-x-auto shadow-md sm:rounded-lg mt-4">
     <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
         <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
             <tr>
@@ -92,58 +117,32 @@ const closeModal = () => {
                 <th scope="col" class="px-6 py-3 text-center">
                     Action
                 </th>
-
             </tr>
         </thead>
         <tbody>
-            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
-                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                    Pamela Rose Malasan
-                </th>
-                <td class="px-6 py-4">
-                    Computer Programmer I
-                </td>
-                <td class="px-6 py-4">
-                    Active
-                </td>
-                <td class="px-6 py-4 flex justify-center items-center gap-2">
-                    <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline" tooltip="edit">Edit</a>
-                    <a href="#" class="font-medium text-green-600 dark:text-green-500 hover:underline">View</a>
-                    <a href="#" class="font-medium text-red-600 dark:text-red-500 hover:underline">Delete</a>
-                </td>
-            </tr>
-            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
-                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                    Pamela Rose Malasan
-                </th>
-                <td class="px-6 py-4">
-                    Computer Programmer I
-                </td>
-                <td class="px-6 py-4">
-                    Active
-                </td>
-                <td class="px-6 py-4 flex justify-center items-center gap-2">
-                    <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Edit</a>
-                    <a href="#" class="font-medium text-green-600 dark:text-green-500 hover:underline">View</a>
-                    <a href="#" class="font-medium text-red-600 dark:text-red-500 hover:underline">Delete</a>
-                </td>
-            </tr>
-            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
-                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                    Pamela Rose Malasan
-                </th>
-                <td class="px-6 py-4">
-                    Computer Programmer I
-                </td>
-                <td class="px-6 py-4">
-                    Active
-                </td>
-                <td class="px-6 py-4 flex justify-center items-center gap-2">
-                    <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Edit</a>
-                    <a href="#" class="font-medium text-green-600 dark:text-green-500 hover:underline">View</a>
-                    <a href="#" class="font-medium text-red-600 dark:text-red-500 hover:underline">Delete</a>
-                </td>
-            </tr>
+            <tr v-for="employee in props.employees"
+  :key="employee.id"
+  class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600"
+>
+  <th
+    scope="row"
+    class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
+  >
+    {{ employee.first_name }} {{ employee.middle_name }} {{ employee.last_name }} {{ employee.suffix }}
+  </th>
+  <td class="px-6 py-4">
+    {{ employee.position_name }}
+  </td>
+  <td class="px-6 py-4">
+    {{ employee.emp_status }}
+  </td>
+  <td class="px-6 py-4 flex justify-center items-center gap-2">
+    <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Edit</a>
+    <a href="#" class="font-medium text-green-600 dark:text-green-500 hover:underline">View</a>
+    <a href="#" class="font-medium text-red-600 dark:text-red-500 hover:underline">Delete</a>
+  </td>
+</tr>
+
         </tbody>
     </table>
 </div>
