@@ -108,7 +108,7 @@ const downloadQrCode = () => {
     if (!props.qrCode) return;
     const link = document.createElement('a');
     link.href = props.qrCode;
-    link.download = `asset_${props.asset?.id || 'qr'}.svg`;
+    link.download = `asset_${props.asset?.id || 'qr'}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

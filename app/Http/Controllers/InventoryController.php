@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-
 use App\Models\Inventory;
 use App\Models\Employee;
 use Illuminate\Http\Request;
@@ -99,22 +98,43 @@ class InventoryController extends Controller
 
         $asset = Inventory::create($data);
 
-        // Generate QR code with absolute URL to the view route
-        $viewUrl = url()->route('inventory.view', ['inventory' => $asset->asset_id], true);
-        Log::info('QR Code URL', ['url' => $viewUrl]);
+        // Generate QR code linking to inventory.tag route
+        $tagUrl = url()->route('inventory.tag', ['inventory' => $asset->asset_id], true);
+        Log::info('QR Code URL', ['url' => $tagUrl]);
+        $qrCodeBase64 = null;
         try {
-            $qrCode = new QrCode($viewUrl);
+            $qrCode = new QrCode($tagUrl);
             $writer = new PngWriter();
             $result = $writer->write($qrCode);
             $qrCodeBase64 = 'data:image/png;base64,' . base64_encode($result->getString());
-            Log::info('QR Code Generated', ['asset_id' => $asset->asset_id, 'view_url' => $viewUrl]);
+            Log::info('QR Code Generated', ['asset_id' => $asset->asset_id, 'tag_url' => $tagUrl]);
         } catch (\Exception $e) {
             Log::error('QR Code Generation Failed in Store', [
                 'asset_id' => $asset->asset_id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            $qrCodeBase64 = null;
+            return Inertia::render('inventory/Create', [
+                'employees' => Employee::all()->map(function ($employee) {
+                    $fullName = trim("{$employee->first_name} {$employee->middle_name} {$employee->last_name}");
+                    return [
+                        'id' => $employee->id,
+                        'full_name' => $fullName ?: 'Unnamed Employee',
+                    ];
+                })->toArray(),
+                'error' => 'Failed to generate QR code: ' . $e->getMessage(),
+                'asset' => [
+                    'id' => $asset->asset_id,
+                    'name' => $asset->name,
+                    'category' => $asset->category,
+                    'location' => $asset->location,
+                    'purchase_date' => $asset->purchase_date,
+                    'value' => $asset->value,
+                    'condition' => $asset->condition,
+                    'assigned_to' => $asset->assigned ? (int)$asset->assigned : null,
+                    'status' => $asset->status,
+                ],
+            ]);
         }
 
         return Inertia::render('inventory/Create', [
@@ -221,21 +241,21 @@ class InventoryController extends Controller
     }
 
     public function destroy(Inventory $inventory)
-{
-    try {
-        DB::beginTransaction();
+    {
+        try {
+            DB::beginTransaction();
 
-        $inventory->delete();
-        Log::info('InventoryController@destroy: Asset deleted: ' . json_encode($inventory->toArray()));
+            $inventory->delete();
+            Log::info('InventoryController@destroy: Asset deleted: ' . json_encode($inventory->toArray()));
 
-        DB::commit();
-        return redirect()->route('inventory.index')->with('message', 'Asset deleted successfully');
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Error in InventoryController@destroy: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
-        return back()->withErrors(['general' => 'Failed to delete asset: ' . $e->getMessage()]);
+            DB::commit();
+            return redirect()->route('inventory.index')->with('message', 'Asset deleted successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error in InventoryController@destroy: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString());
+            return back()->withErrors(['general' => 'Failed to delete asset: ' . $e->getMessage()]);
+        }
     }
-}
 
     public function view(Request $request, $inventory)
     {
@@ -257,9 +277,8 @@ class InventoryController extends Controller
             ? trim("{$assignedTo->first_name} {$assignedTo->middle_name} {$assignedTo->last_name}")
             : 'Unassigned';
     
-        // Generate QR code URL using the current request's host and port
         $viewUrl = $request->getSchemeAndHttpHost() . route(
-            'inventory.view',
+            'inventory.tag',
             ['inventory' => $inventoryModel->asset_id],
             false
         );
@@ -294,7 +313,7 @@ class InventoryController extends Controller
             'value' => (float) $inventoryModel->value,
             'condition' => (string) $inventoryModel->condition,
             'assigned_to' => (string) $fullName,
-            'employee_id' => $inventoryModel->assigned ? (int) $inventoryModel->assigned : null,
+            'employee_id' => $inventoryModel->assigned ? (int)$inventoryModel->assigned : null,
             'status' => (string) $inventoryModel->status,
             'qr_code' => $qrCodeBase64,
         ];
@@ -302,6 +321,75 @@ class InventoryController extends Controller
         Log::info('View Asset Data', ['asset' => $assetData]);
     
         return Inertia::render('inventory/View', [
+            'asset' => $assetData,
+            'error' => null
+        ]);
+    }
+
+    public function tag(Request $request, $inventory)
+    {
+        Log::info('Tag Method Called', ['inventory_param' => $inventory]);
+    
+        $inventoryModel = Inventory::where('asset_id', $inventory)->first();
+        Log::info('Inventory Query', ['asset_id' => $inventory, 'result' => $inventoryModel ? $inventoryModel->toArray() : null]);
+    
+        if (!$inventoryModel) {
+            Log::error('Inventory not found', ['asset_id' => $inventory]);
+            return Inertia::render('inventory/AssetTag', [
+                'asset' => null,
+                'error' => 'Asset not found for ID: ' . $inventory
+            ]);
+        }
+    
+        $assignedTo = $inventoryModel->assigned ? Employee::find($inventoryModel->assigned) : null;
+        $fullName = $assignedTo 
+            ? trim("{$assignedTo->first_name} {$assignedTo->middle_name} {$assignedTo->last_name}")
+            : 'Unassigned';
+    
+        $tagUrl = $request->getSchemeAndHttpHost() . route(
+            'inventory.tag',
+            ['inventory' => $inventoryModel->asset_id],
+            false
+        );
+    
+        Log::info('QR Code URL', ['url' => $tagUrl]);
+    
+        try {
+            $qrCode = new QrCode($tagUrl);
+            $writer = new PngWriter();
+            $result = $writer->write($qrCode);
+            $qrCodeBase64 = 'data:image/png;base64,' . base64_encode($result->getString());
+            Log::info('Viewing Asset Tag', [
+                'asset_id' => $inventoryModel->asset_id,
+                'assigned' => $inventoryModel->assigned,
+                'full_name' => $fullName
+            ]);
+        } catch (\Exception $e) {
+            Log::error('QR Code Generation Failed in Tag', [
+                'asset_id' => $inventoryModel->asset_id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            $qrCodeBase64 = null;
+        }
+    
+        $assetData = [
+            'id' => (string) $inventoryModel->asset_id,
+            'name' => (string) $inventoryModel->name,
+            'category' => (string) $inventoryModel->category,
+            'location' => (string) $inventoryModel->location,
+            'purchase_date' => (string) $inventoryModel->purchase_date,
+            'value' => (float) $inventoryModel->value,
+            'condition' => (string) $inventoryModel->condition,
+            'assigned_to' => (string) $fullName,
+            'employee_id' => $inventoryModel->assigned ? (int)$inventoryModel->assigned : null,
+            'status' => (string) $inventoryModel->status,
+            'qr_code' => $qrCodeBase64,
+        ];
+    
+        Log::info('Tag Asset Data', ['asset' => $assetData]);
+    
+        return Inertia::render('inventory/AssetTag', [
             'asset' => $assetData,
             'error' => null
         ]);
