@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('positions', function (Blueprint $table) {
             $table->id();
-            $table->string('item_code');
+            $table->string('item_code')->unique();
             $table->string('org_code')->nullable();
             $table->string('name');
             $table->string('desc')->nullable();

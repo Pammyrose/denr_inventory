@@ -11,7 +11,7 @@ const props = defineProps<{
   <li
     data-slot="sidebar-menu-item"
     data-sidebar="menu-item"
-    :class="cn('group/menu-item relative text-green-700', props.class)"
+    :class="cn('group/menu-item relative text-white hover:text-green-900', props.class)"
   >
     <slot />
   </li>

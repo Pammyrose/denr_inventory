@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Inventory extends Model
 {
-
     protected $table = 'assets';
 
     protected $fillable = [
@@ -20,4 +19,22 @@ class Inventory extends Model
         'assigned',
         'status',
     ];
+
+    protected $primaryKey = 'id';
+
+    /**
+     * Get the route key for the model (use asset_id for binding).
+     */
+    public function getRouteKeyName(): string
+    {
+        return 'asset_id';
+    }
+
+    /**
+     * Get the employee assigned to this asset.
+     */
+    public function employee(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'assigned'); // Fixed to use 'assigned'
+    }
 }

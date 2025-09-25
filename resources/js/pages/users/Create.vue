@@ -1,27 +1,23 @@
-
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
 import Label from '@/components/ui/label/Label.vue';
+import InputError from '@/components/InputError.vue';
+import { LoaderCircle } from 'lucide-vue-next';
 
-// Props to close the modal from Index.vue
+// Props to close the modal
 defineProps<{
     closeModal: () => void;
 }>();
 
 // Form data with Inertia's useForm
 const form = useForm({
-    firstName: '',
-    middleName: '',
-    lastName: '',
-    suffix: '',
-    sex: '',
+    full_name: '',
     email: '',
-    emp_status: '',
-    position: '',
-    assignment: '',
+    password: '',
+    password_confirmation: '',
 });
 
 // Reactive errors for client-side validation
@@ -30,23 +26,24 @@ const errors = ref<{ [key: string]: string }>({});
 // Validate required fields before submission
 const validate = () => {
     errors.value = {};
-    if (!form.firstName) errors.value.firstName = 'First name is required';
-    if (!form.lastName) errors.value.lastName = 'Last name is required';
+    if (!form.full_name) errors.value.full_name = 'Full name is required';
     if (!form.email) errors.value.email = 'Email is required';
-    if (!form.sex) errors.value.sex = 'Sex is required';
+    if (!form.password) errors.value.password = 'Password is required';
+    if (!form.password_confirmation) errors.value.password_confirmation = 'Password confirmation is required';
+    if (form.password !== form.password_confirmation) errors.value.password_confirmation = 'Passwords do not match';
     return Object.keys(errors.value).length === 0;
 };
 
 // Submit form to backend
 const submit = () => {
-    if (!validate()) return; // Stop if validation fails
-    form.post(route('users.index'), {
+    if (!validate()) return;
+    form.post(route('users.store'), {
         onSuccess: () => {
-            form.reset(); // Reset form on success
-            closeModal(); // Close modal
+            form.reset('password', 'password_confirmation');
+            closeModal();
         },
         onError: (serverErrors) => {
-            errors.value = { ...errors.value, ...serverErrors }; // Merge server errors
+            errors.value = { ...errors.value, ...serverErrors };
         },
     });
 };
@@ -55,51 +52,67 @@ const submit = () => {
 <template>
     <form @submit.prevent="submit" class="space-y-4">
         <!-- Form title -->
-        <h2 class="text-lg font-semibold text-gray-900">Create Users</h2>
+        <h2 class="text-lg font-semibold text-gray-900">Create User</h2>
 
-        <!-- First row: Name fields -->
-        <div class="grid grid-row-4 gap-4 text-black">
+        <!-- Form fields -->
+        <div class="grid gap-4 text-black">
             <div>
-                <Label for="firstName">Name</Label>
+                <Label for="full_name">Full Name</Label>
                 <Input
-                    id="firstName"
-                    v-model="form.firstName"
+                    id="full_name"
+                    type="text"
+                    v-model="form.full_name"
+                    required
+                    autocomplete="name"
+                    placeholder="Full name"
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    :class="{ 'border-red-500': errors.firstName }"
+                    :class="{ 'border-red-500': errors.full_name }"
                 />
-                <p v-if="errors.firstName" class="mt-1 text-sm text-red-500">{{ errors.firstName }}</p>
+                <InputError :message="errors.full_name" />
             </div>
             <div>
-                <Label for="middleName">Email</Label>
+                <Label for="email">Email</Label>
                 <Input
-                    id="middleName"
-                    v-model="form.middleName"
+                    id="email"
+                    type="email"
+                    v-model="form.email"
+                    required
+                    autocomplete="email"
+                    placeholder="email@example.com"
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    :class="{ 'border-red-500': errors.email }"
                 />
+                <InputError :message="errors.email" />
             </div>
             <div>
-                <Label for="lastName">New Password</Label>
+                <Label for="password">Password</Label>
                 <Input
-                    id="lastName"
-                    v-model="form.lastName"
+                    id="password"
+                    type="password"
+                    v-model="form.password"
+                    required
+                    autocomplete="new-password"
+                    placeholder="Password"
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    :class="{ 'border-red-500': errors.lastName }"
+                    :class="{ 'border-red-500': errors.password }"
                 />
-                <p v-if="errors.lastName" class="mt-1 text-sm text-red-500">{{ errors.lastName }}</p>
+                <InputError :message="errors.password" />
             </div>
             <div>
-                <Label for="suffix">Confirm Password</Label>
+                <Label for="password_confirmation">Confirm Password</Label>
                 <Input
-                    id="suffix"
-                    v-model="form.suffix"
+                    id="password_confirmation"
+                    type="password"
+                    v-model="form.password_confirmation"
+                    required
+                    autocomplete="new-password"
+                    placeholder="Confirm password"
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    :class="{ 'border-red-500': errors.password_confirmation }"
                 />
+                <InputError :message="errors.password_confirmation" />
             </div>
         </div>
-
-
-
-        
 
         <!-- Form actions -->
         <div class="flex justify-end gap-3">
@@ -113,8 +126,10 @@ const submit = () => {
             <Button
                 type="submit"
                 class="bg-blue-600 text-white hover:bg-blue-700"
+                :disabled="form.processing"
             >
-                Submit
+                <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin mr-2" />
+                Create account
             </Button>
         </div>
     </form>

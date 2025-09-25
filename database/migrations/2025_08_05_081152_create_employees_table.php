@@ -4,12 +4,9 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+class CreateEmployeesTable extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
+    public function up()
     {
         Schema::create('employees', function (Blueprint $table) {
             $table->id();
@@ -18,21 +15,25 @@ return new class extends Migration
             $table->string('last_name');
             $table->string('suffix')->nullable();
             $table->string('sex', 1);
-            $table->string('email');
+            $table->string('email')->unique();
             $table->string('emp_status');
-            $table->string('position_name');
-            $table->string('assignment_name');
-            $table->string('div_sec_unit');
-            $table->foreign('email')->references('email')->on('users')->onDelete('cascade');
+
+            // ✅ Use foreign key IDs instead of names
+            $table->unsignedBigInteger('position_id');
+            $table->unsignedBigInteger('assignment_id');
+            $table->unsignedBigInteger('org_unit_id');
+
             $table->timestamps();
+
+            // ✅ Proper foreign key constraints
+            $table->foreign('position_id')->references('id')->on('positions')->onDelete('restrict');
+            $table->foreign('assignment_id')->references('id')->on('assignment_places')->onDelete('restrict');
+            $table->foreign('org_unit_id')->references('id')->on('org_units')->onDelete('restrict');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+    public function down()
     {
         Schema::dropIfExists('employees');
     }
-};
+}

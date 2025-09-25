@@ -1,152 +1,343 @@
-
 <script setup lang="ts">
-import { ref } from 'vue';
-import Button from '@/components/ui/button/Button.vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import { usePage, Head, useForm, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
+import Button from '@/components/ui/button/Button.vue';
 import Create from './Create.vue';
-import { type BreadcrumbItem } from '@/types';
-import { Head, usePage } from '@inertiajs/vue3';
+import Edit from './Edit.vue';
 
-interface Employees{
-    id: number,
-    first_name: string,
-    middle_name: string,
-    last_name: string,
-    suffix: string,
-    sex: string,
-    email: string,
-    emp_status: string,
-    position_name: string,
-    assignment_name: string,
-
+interface Employee {
+  id: number;
+  first_name: string;
+  middle_name: string;
+  last_name: string;
+  suffix: string;
+  sex: string;
+  email: string;
+  emp_status: string;
+  position_id?: string;
+  assignment_id?: string;
+  org_unit_id?: string;
+  position_name?: string;
+  assignment_name?: string;
+  div_sec_unit?: string;
 }
 
-interface Props{
-    employees: Employees[];
+interface Dropdowns {
+  orgUnits: Array<{ value: string; label: string }>;
+  positions: Array<{ value: string; label: string; salary_grade: string | null; item_code: string; org_code: string }>;
+  assignmentPlaces: Array<{ value: string; label: string }>;
+  empStatuses: Array<{ value: string; label: string }>;
 }
 
-const props = defineProps<Props>();
+interface BreadcrumbItem {
+  title: string;
+  href: string;
+}
 
-const page = usePage()
+const props = defineProps<{
+  employees: Employee[] | null;
+  dropdowns: Dropdowns | null;
+  error?: string | null;
+}>();
+
+const page = usePage();
+
+const alertMessage = ref<string>('');
+const alertType = ref<'success' | 'error' | ''>('');
+
+onMounted(() => {
+  console.log('Index.vue: Props received', {
+    employees: props.employees,
+    dropdowns: props.dropdowns,
+    error: props.error,
+    flash: (page.props as any).flash,
+  });
+  if (props.error) {
+    console.log('Index.vue: Error prop detected:', props.error);
+    alertMessage.value = props.error;
+    alertType.value = 'error';
+    setTimeout(() => {
+      alertMessage.value = '';
+      alertType.value = '';
+    }, 3000);
+  }
+});
 
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Employee',
-        href: '/employee',
-    },
+  { title: 'Employee', href: '/employee' },
 ];
 
-// Modal visibility
-const isModalOpen = ref(false);
+const searchQuery = ref('');
+const isCreateModalOpen = ref(false);
+const isEditModalOpen = ref(false);
+const selectedEmployee = ref<Employee | null>(null);
+const employeeToArchive = ref<number | null>(null);
 
-// Modal controls
-const openModal = () => {
-    isModalOpen.value = true;
+const filteredEmployees = computed(() => {
+  if (!props.employees || !Array.isArray(props.employees)) {
+    console.warn('Index.vue: No employees or invalid employees prop', props.employees);
+    return [];
+  }
+  if (!searchQuery.value.trim()) {
+    return props.employees;
+  }
+  const query = searchQuery.value.toLowerCase().trim();
+  return props.employees.filter(employee => {
+    const fullName = `${employee.first_name} ${employee.middle_name || ''} ${employee.last_name} ${employee.suffix || ''}`.toLowerCase();
+    return (
+      fullName.includes(query) ||
+      (employee.position_name?.toLowerCase().includes(query) ?? false) ||
+      (employee.emp_status?.toLowerCase().includes(query) ?? false) ||
+      (employee.assignment_name?.toLowerCase().includes(query) ?? false) ||
+      (employee.div_sec_unit?.toLowerCase().includes(query) ?? false)
+    );
+  });
+});
+
+const openCreateModal = () => {
+  console.log('Opening create modal, current state:', isCreateModalOpen.value);
+  isCreateModalOpen.value = true;
 };
-const closeModal = () => {
-    isModalOpen.value = false;
+
+const closeCreateModal = () => {
+  console.log('Closing create modal');
+  isCreateModalOpen.value = false;
 };
+
+const openEditModal = (employee: Employee) => {
+  console.log('Opening edit modal for employee:', employee);
+  selectedEmployee.value = { ...employee };
+  isEditModalOpen.value = true;
+};
+
+const closeEditModal = () => {
+  console.log('Closing edit modal');
+  isEditModalOpen.value = false;
+  selectedEmployee.value = null;
+};
+
+const openConfirmArchiveModal = (employeeId: number) => {
+  console.log('Opening confirm archive modal for employee:', employeeId);
+  if (confirm('Are you sure you want to archive this employee? This action cannot be undone.')) {
+    archiveEmployee(employeeId);
+  }
+};
+
+const archiveEmployee = (employeeId: number) => {
+  console.log('Archiving employee:', employeeId);
+  router.delete(route('employee.archive', employeeId), {
+    onSuccess: () => {
+      console.log('Archive successful - reloading page');
+      window.location.reload();  // Forces refresh to remove the archived employee from the list
+    },
+    onError: (errors) => {
+      console.error('Archive failed:', errors);
+      alertMessage.value = 'Failed to archive employee: ' + Object.values(errors).join(', ');
+      alertType.value = 'error';
+      setTimeout(() => {
+        alertMessage.value = '';
+        alertType.value = '';
+      }, 3000);
+    },
+  });
+};
+
+watch(
+  () => (page.props as any).flash,
+  (flash) => {
+    console.log('Index.vue: Watch triggered, flash:', flash);
+    if (flash?.message) {
+      console.log('Index.vue: Flash message detected:', flash.message);
+      alertMessage.value = flash.message;
+      alertType.value = 'success';
+      setTimeout(() => {
+        alertMessage.value = '';
+        alertType.value = '';
+      }, 2000);
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <template>
-    <Head title="Employee" />
+  <Head title="Employee" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="p-4">
-            <!-- Create button -->
-            <Button
-                @click="openModal"
-                class="bg-blue-600 text-white hover:bg-blue-700"
-            >
-                Create
-            </Button>
-
-            <!-- Modal -->
-            <div
-                v-if="isModalOpen"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-transparent transition-opacity duration-300"
-                @click.self="closeModal"
-            >
-                <div class="bg-white rounded-xl shadow-lg w-full max-w-3xl p-6 relative border border-gray-300">
-                    <!-- Close button -->
-                    <button
-                        @click="closeModal"
-                        class="absolute top-3 right-3 text-gray-600 hover:text-gray-800 focus:outline-none"
-                        aria-label="Close modal"
-                    >
-                        <svg
-                            class="w-6 h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M6 18L18 6M6 6l12 12"
-                            />
-                        </svg>
-                    </button>
-
-                    <!-- Create form -->
-                    <Create :closeModal="closeModal" />
-                </div>
-            </div>
-
-            <!-- Employee table -->
-            
-            <div v-if="page.props.flash?.message" class="alert">
-        {{ page.props.flash.message }}
+  <AppLayout :breadcrumbs="breadcrumbs">
+    <div class="p-4">
+      <!-- Alert -->
+      <div
+        v-if="alertMessage"
+        :class="{
+          'bg-green-100 border-green-400 text-green-700': alertType === 'success',
+          'bg-red-100 border-red-400 text-red-700': alertType === 'error',
+        }"
+        class="border-l-4 p-4 mb-4 rounded-r-md"
+        role="alert"
+      >
+        <p class="font-medium">{{ alertType === 'success' ? 'Success' : 'Error' }}</p>
+        <p>{{ alertMessage }}</p>
       </div>
 
-      <div class="relative overflow-x-auto shadow-md sm:rounded-lg mt-4">
-    <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-            <tr>
-                <th scope="col" class="px-6 py-3">
-                    Name
-                </th>
-                <th scope="col" class="px-6 py-3">
-                    Position
-                </th>
-                <th scope="col" class="px-6 py-3">
-                    Status
-                </th>
-                <th scope="col" class="px-6 py-3 text-center">
-                    Action
-                </th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr v-for="employee in props.employees"
-  :key="employee.id"
-  class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600"
->
-  <th
-    scope="row"
-    class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-  >
-    {{ employee.first_name }} {{ employee.middle_name }} {{ employee.last_name }} {{ employee.suffix }}
-  </th>
-  <td class="px-6 py-4">
-    {{ employee.position_name }}
-  </td>
-  <td class="px-6 py-4">
-    {{ employee.emp_status }}
-  </td>
-  <td class="px-6 py-4 flex justify-center items-center gap-2">
-    <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Edit</a>
-    <a href="#" class="font-medium text-green-600 dark:text-green-500 hover:underline">View</a>
-    <a href="#" class="font-medium text-red-600 dark:text-red-500 hover:underline">Delete</a>
-  </td>
-</tr>
-
-        </tbody>
-    </table>
-</div>
-
+      <!-- Search Input and Create Button -->
+      <div class="flex justify-between items-center mb-4">
+        <Button
+          @click="openCreateModal"
+          class="bg-blue-600 text-white hover:bg-blue-700"
+        >
+          Create
+        </Button>
+        <div class="relative w-full max-w-md">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search..."
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <svg
+            class="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
         </div>
-    </AppLayout>
+      </div>
+
+      <!-- Create Modal -->
+      <div
+        v-if="isCreateModalOpen"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-transparent transition-opacity duration-300"
+        @click.self="closeCreateModal"
+      >
+        <div class="bg-white rounded-xl shadow-lg w-full max-w-3xl p-6 relative border border-gray-300">
+          <button
+            @click="closeCreateModal"
+            class="absolute top-3 right-3 text-gray-600 hover:text-gray-800 focus:outline-none"
+            aria-label="Close modal"
+          >
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <Create
+            :orgUnits="props.dropdowns?.orgUnits ?? []"
+            :positions="props.dropdowns?.positions ?? []"
+            :assignmentPlaces="props.dropdowns?.assignmentPlaces ?? []"
+            :empStatuses="props.dropdowns?.empStatuses ?? []"
+            :close="closeCreateModal"
+          />
+        </div>
+      </div>
+
+      <!-- Edit Modal -->
+      <div
+        v-if="isEditModalOpen && selectedEmployee"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-transparent transition-opacity duration-300"
+        @click.self="closeEditModal"
+      >
+        <div class="bg-white rounded-xl shadow-lg w-full max-w-3xl p-6 relative border border-gray-300">
+          <button
+            @click="closeEditModal"
+            class="absolute top-3 right-3 text-gray-600 hover:text-gray-800 focus:outline-none"
+            aria-label="Close modal"
+          >
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <Edit
+            :employee="selectedEmployee"
+            :orgUnits="props.dropdowns?.orgUnits ?? []"
+            :positions="props.dropdowns?.positions ?? []"
+            :assignmentPlaces="props.dropdowns?.assignmentPlaces ?? []"
+            :empStatuses="props.dropdowns?.empStatuses ?? []"
+            :close="closeEditModal"
+          />
+        </div>
+      </div>
+
+      <!-- Employee Table -->
+      <div class="relative overflow-x-auto shadow-md sm:rounded-lg mt-4">
+        <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+          <thead class="text-xs text-white uppercase bg-gradient-to-b from-green-300 to-green-600">
+            <tr>
+              <th scope="col" class="px-4 py-3">Employee ID</th>
+              <th scope="col" class="px-4 py-3 text-center">Name</th>
+              <th scope="col" class="px-4 py-3 text-center">Position</th>
+              <th scope="col" class="px-4 py-3 text-center">Assignment</th>
+              <th scope="col" class="px-4 py-3 text-center">Status</th>
+              <th scope="col" class="px-4 py-3 text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="employee in filteredEmployees"
+              :key="employee.id"
+              class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600"
+            >
+              <th scope="row" class="px-4 py-1 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                {{ employee.id || 'N/A' }}
+              </th>
+              <td class="px-2 py-1 text-center">
+                {{ employee.first_name }} {{ employee.middle_name || '' }} {{ employee.last_name }} {{ employee.suffix || '' }}
+              </td>
+              <td class="px-2 py-1 text-center">{{ employee.position_name || 'N/A' }}</td>
+              <td class="px-2 py-1 text-center">{{ employee.assignment_name || 'N/A' }}</td>
+              <td class="px-2 py-1 text-center">
+                <span
+                  :class="{
+                    'text-white bg-green-600 hover:bg-green-800': employee.emp_status === 'Active',
+                    'text-white bg-red-700 hover:bg-red-800': employee.emp_status === 'Inactive',
+                    'text-white bg-blue-700 hover:bg-blue-800': employee.emp_status === 'On Leave',
+                  }"
+                  class="font-medium rounded-full text-sm px-5 py-1.5 text-center me-2 mb-2"
+                >
+                  {{ employee.emp_status || 'N/A' }}
+                </span>
+              </td>
+              <td class="px-4 py-1 flex justify-center items-center gap-1">
+                <Button
+                  @click="openEditModal(employee)"
+                  class="font-medium text-blue-600 bg-transparent hover:bg-transparent hover:underline border-0 shadow-none"
+                >
+                  Edit
+                </Button>
+                <Link :href="route('employee.view', { employee: employee.id })" class="font-medium text-green-600 dark:text-green-500 hover:underline">View</Link>
+                <Button
+                  @click="openConfirmArchiveModal(employee.id)"
+                  class="font-medium text-yellow-600 bg-transparent hover:bg-transparent hover:underline border-0 shadow-none"
+                >
+                  Archive
+                </Button>
+              </td>
+            </tr>
+            <tr v-if="!filteredEmployees.length">
+              <td colspan="7" class="text-center py-4">No employees found.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </AppLayout>
 </template>

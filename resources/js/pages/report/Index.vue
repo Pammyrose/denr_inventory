@@ -1,12 +1,10 @@
-
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Line } from 'vue-chartjs';
 import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, PointElement, CategoryScale, LinearScale } from 'chart.js';
-import Button from '@/components/ui/button/Button.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head } from '@inertiajs/vue3';
-import { BarChart } from 'lucide-vue-next';
+import { Head, usePage, router } from '@inertiajs/vue3';
+import { format } from 'date-fns';
 
 // Register Chart.js components
 ChartJS.register(Title, Tooltip, Legend, LineElement, PointElement, CategoryScale, LinearScale);
@@ -24,60 +22,90 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-// Sample data for purchased assets (July 1–31, 2025)
-const purchaseData = [
-    { date: '2025-07-01', quantity: 120 },
-    { date: '2025-07-02', quantity: 130 },
-    { date: '2025-07-03', quantity: 110 },
-    { date: '2025-07-04', quantity: 140 },
-    { date: '2025-07-05', quantity: 90 },
-    { date: '2025-07-06', quantity: 100 },
-    { date: '2025-07-07', quantity: 150 },
-    { date: '2025-07-08', quantity: 160 },
-    { date: '2025-07-09', quantity: 170 },
-    { date: '2025-07-10', quantity: 180 },
-    { date: '2025-07-11', quantity: 200 },
-    { date: '2025-07-12', quantity: 190 },
-    { date: '2025-07-13', quantity: 210 },
-    { date: '2025-07-14', quantity: 220 },
-    { date: '2025-07-15', quantity: 230 },
-    { date: '2025-07-16', quantity: 240 },
-    { date: '2025-07-17', quantity: 250 },
-    { date: '2025-07-18', quantity: 260 },
-    { date: '2025-07-19', quantity: 270 },
-    { date: '2025-07-20', quantity: 280 },
-    { date: '2025-07-21', quantity: 290 },
-    { date: '2025-07-22', quantity: 300 },
-    { date: '2025-07-23', quantity: 310 },
-    { date: '2025-07-24', quantity: 320 },
-    { date: '2025-07-25', quantity: 330 },
-    { date: '2025-07-26', quantity: 340 },
-    { date: '2025-07-27', quantity: 350 },
-    { date: '2025-07-28', quantity: 360 },
-    { date: '2025-07-29', quantity: 370 },
-    { date: '2025-07-30', quantity: 380 },
-    { date: '2025-07-31', quantity: 390 },
-];
+// Access data passed from the controller
+const { props } = usePage();
+const assetsByDay = ref((props.assetsByDay || []) as { date: string; quantity: number }[]);
+const availableYears = ref(props.availableYears as { value: string; label: string }[]);
+const availableMonths = ref(props.availableMonths as { value: string; label: string }[]);
+const selectedYear = ref(props.selectedYear as string);
+const selectedMonth = ref(props.selectedMonth as string);
+const daysInMonth = ref(props.daysInMonth as number);
 
-// Chart data
-const chartData = ref({
-    labels: purchaseData.map(item => new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })),
-    datasets: [
-        {
-            label: 'Purchased Assets',
-            data: purchaseData.map(item => item.quantity),
-            borderColor: '#10b981', // emerald-500
-            backgroundColor: '#10b981', // For points
-            borderWidth: 2,
-            pointRadius: 3,
-            fill: false, // No fill under the line
-            tension: 0.5, // Slight curve for smoothness
-        },
-    ],
+// Force chart re-render key
+const chartKey = ref(`${selectedYear.value}-${selectedMonth.value}`);
+
+// Sync props with reactive refs and log changes
+watch(() => props.assetsByDay, (newData) => {
+    console.log('Props assetsByDay updated:', newData);
+    assetsByDay.value = (newData || []) as { date: string; quantity: number }[];
+    chartKey.value = `${selectedYear.value}-${selectedMonth.value}`; // Update chart key
+}, { deep: true, immediate: true });
+
+watch(() => props.availableYears, (newYears) => {
+    console.log('Props availableYears updated:', newYears);
+    availableYears.value = newYears as { value: string; label: string }[];
+}, { deep: true });
+
+watch(() => props.availableMonths, (newMonths) => {
+    console.log('Props availableMonths updated:', newMonths);
+    availableMonths.value = newMonths as { value: string; label: string }[];
+}, { deep: true });
+
+watch(() => props.selectedYear, (newYear) => {
+    console.log('Props selectedYear updated:', newYear);
+    selectedYear.value = newYear as string;
+    chartKey.value = `${newYear}-${selectedMonth.value}`; // Update chart key
 });
 
-// Chart options
-const chartOptions = ref({
+watch(() => props.selectedMonth, (newMonth) => {
+    console.log('Props selectedMonth updated:', newMonth);
+    selectedMonth.value = newMonth as string;
+    chartKey.value = `${selectedYear.value}-${newMonth}`; // Update chart key
+});
+
+watch(() => props.daysInMonth, (newDays) => {
+    console.log('Props daysInMonth updated:', newDays);
+    daysInMonth.value = newDays as number;
+});
+
+// Format date labels (e.g., "Aug 1")
+const formatDateLabel = (date: string) => {
+    try {
+        return format(new Date(date), 'MMM d'); // e.g., "Aug 1"
+    } catch (error) {
+        console.error('Invalid date format:', date, error);
+        return date; // Fallback to raw date
+    }
+};
+
+// Debug chart labels
+watch(assetsByDay, (newData) => {
+    console.log('assetsByDay ref updated:', newData);
+    console.log('Chart labels:', newData.map(item => formatDateLabel(item.date)));
+}, { deep: true });
+
+// Reactive chart data
+const chartData = computed(() => {
+    console.log('Computing chartData with assetsByDay:', assetsByDay.value);
+    return {
+        labels: assetsByDay.value.map(item => formatDateLabel(item.date)),
+        datasets: [
+            {
+                label: 'Assets',
+                data: assetsByDay.value.map(item => item.quantity),
+                borderColor: '#10b981', // emerald-500
+                backgroundColor: '#10b981', // For points
+                borderWidth: 4,
+                pointRadius: 4,
+                fill: false,
+                tension: 0.5,
+            },
+        ],
+    };
+});
+
+// Reactive chart options
+const chartOptions = computed(() => ({
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -86,7 +114,7 @@ const chartOptions = ref({
         },
         title: {
             display: true,
-            text: 'Daily Purchased Assets (July 2025)',
+            text: `Daily Purchased Assets (${format(new Date(parseInt(selectedYear.value), parseInt(selectedMonth.value) - 1), 'MMMM yyyy')})`,
             color: '#1f2937', // gray-800
             font: {
                 size: 16,
@@ -107,8 +135,11 @@ const chartOptions = ref({
                 color: '#1f2937', // gray-800
             },
             ticks: {
+                stepSize: 10,
                 callback: (value: number) => `${value}`,
+                maxTicksLimit: daysInMonth.value || 31, // Fallback to 31 if undefined
             },
+            suggestedMax: 150,
         },
         x: {
             title: {
@@ -123,7 +154,17 @@ const chartOptions = ref({
             },
         },
     },
-});
+}));
+
+// Handle year or month selection change
+const handleFilterChange = () => {
+    console.log('Filter changed:', { year: selectedYear.value, month: selectedMonth.value });
+    router.get(
+        '/report',
+        { year: selectedYear.value, month: selectedMonth.value },
+        { preserveState: false, replace: true } // Disable preserveState, use replace
+    );
+};
 </script>
 
 <template>
@@ -131,13 +172,45 @@ const chartOptions = ref({
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-4">
+            <div class="mb-4 flex space-x-4">
+                <div>
+                    <label for="year-select" class="mr-2 text-gray-700">Select Year:</label>
+                    <select
+                        id="year-select"
+                        v-model="selectedYear"
+                        @change="handleFilterChange"
+                        class="p-2 border border-gray-300 rounded-md bg-white text-gray-700 focus:ring-2 focus:ring-emerald-500"
+                    >
+                        <option v-for="year in availableYears" :key="year.value" :value="year.value">
+                            {{ year.label }}
+                        </option>
+                    </select>
+                </div>
+                <div>
+                    <label for="month-select" class="mr-2 text-gray-700">Select Month:</label>
+                    <select
+                        id="month-select"
+                        v-model="selectedMonth"
+                        @change="handleFilterChange"
+                        class="p-2 border border-gray-300 rounded-md bg-white text-gray-700 focus:ring-2 focus:ring-emerald-500"
+                    >
+                        <option v-for="month in availableMonths" :key="month.value" :value="month.value">
+                            {{ month.label }}
+                        </option>
+                    </select>
+                </div>
+            </div>
             <div class="mt-4">
-                <div class="w-full h-[600px] p-4 bg-transparent">
+                <div v-if="assetsByDay.length > 0 && daysInMonth > 0" class="w-full h-full p-4 bg-transparent">
                     <Line
                         :data="chartData"
                         :options="chartOptions"
                         class="w-full h-full"
+                        :key="chartKey"
                     />
+                </div>
+                <div v-else class="text-center text-gray-500">
+                    No data available for the selected month.
                 </div>
             </div>
         </div>

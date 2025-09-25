@@ -60,4 +60,12 @@ class ProfileController extends Controller
 
         return redirect('/');
     }
+
+    public function show()
+    {
+        $user = Auth::user(); 
+        return Inertia::render('ProfileComponent', [
+            'user' => $user,
+        ]);
+    }
 }
