@@ -390,6 +390,7 @@ onMounted(() => {
                             <td class="px-2 py-1 text-center">
                                 <span
                                     :class="{
+                                        'text-white bg-yellow-600 hover:bg-yellow-700': item.status === 'Good',
                                         'text-white bg-red-700 hover:bg-red-800': item.status === 'Check',
                                         'text-white bg-green-600 hover:bg-green-800': item.status === 'Repair',
                                         'text-white bg-blue-700 hover:bg-blue-800': item.status === 'Upgrade',

@@ -18,6 +18,8 @@ class Inventory extends Model
         'condition',
         'assigned',
         'status',
+        'image',
+        'return_date',
     ];
 
     protected $primaryKey = 'id';

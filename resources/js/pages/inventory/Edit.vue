@@ -11,10 +11,12 @@ interface InventoryItem {
     category: string;
     location: string;
     purchase_date: string;
-    value: string;
+    value: string | number;
     condition: string;
     assigned_to: number | null;
     status: string;
+    image: string | null;
+    return_date: string | null;
 }
 
 interface Employee {
@@ -35,23 +37,48 @@ console.log('Edit.vue props:', {
 });
 
 const form = useForm({
-    name: props.item.name,
+    name: props.item.name || '',
     category: props.item.category || '',
     location: props.item.location || '',
     purchase_date: props.item.purchase_date || '',
-    value: props.item.value || '',
+    value: props.item.value ? String(props.item.value) : '',
     condition: props.item.condition || '',
     assigned_to: props.item.assigned_to ? Number(props.item.assigned_to) : null,
     status: props.item.status || '',
+    return_date: props.item.return_date || '',
+    image: null as File | null,
 });
 
 const errors = ref<{ [key: string]: string }>({});
 const alertMessage = ref<string>('');
 const alertType = ref<'success' | 'error' | ''>('');
 
-// Watch for changes in assigned_to for debugging
-watch(() => form.assigned_to, (newValue) => {
-    console.log('form.assigned_to changed:', newValue, typeof newValue);
+// Image preview handling
+const imagePreview = ref<string | null>(props.item.image || null);
+const onImageChange = (event: Event) => {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+        form.image = input.files[0];
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imagePreview.value = e.target?.result as string;
+        };
+        reader.readAsDataURL(input.files[0]);
+        console.log('Image selected:', {
+            name: form.image.name,
+            size: form.image.size,
+            type: form.image.type
+        });
+    } else {
+        form.image = null;
+        imagePreview.value = props.item.image || null;
+        console.log('Image cleared');
+    }
+};
+
+// Watch form data for debugging
+watch(() => form.data(), (newData) => {
+    console.log('Form data changed:', newData);
 });
 
 const validate = () => {
@@ -60,19 +87,32 @@ const validate = () => {
     if (!form.category) errors.value.category = 'Category is required';
     if (!form.location) errors.value.location = 'Location is required';
     if (!form.purchase_date) errors.value.purchase_date = 'Purchase date is required';
-    if (!form.value) errors.value.value = 'Value is required';
+    if (!form.value || isNaN(parseFloat(form.value))) errors.value.value = 'Value must be a valid number';
+    if (parseFloat(form.value) < 0 || parseFloat(form.value) > 9999999.99) {
+        errors.value.value = 'Value must be between 0 and 9999999.99';
+    }
     if (!form.condition) errors.value.condition = 'Condition is required';
     if (!form.status) errors.value.status = 'Status is required';
     if (form.assigned_to && !props.employees.some(emp => emp.id === form.assigned_to)) {
         errors.value.assigned_to = 'Invalid employee selected';
     }
+    if (form.return_date && !/^\d{4}-\d{2}-\d{2}$/.test(form.return_date)) {
+        errors.value.return_date = 'Return date must be a valid date';
+    }
+    if (form.image && !['image/jpeg', 'image/png', 'image/jpg', 'image/gif'].includes(form.image.type)) {
+        errors.value.image = 'Image must be a valid image file (jpeg, png, jpg, gif)';
+    }
+    if (form.image && form.image.size > 2048 * 1024) {
+        errors.value.image = 'Image size must not exceed 2MB';
+    }
+    console.log('Client-side validation errors:', errors.value);
     return Object.keys(errors.value).length === 0;
 };
 
 const submit = () => {
     alertMessage.value = '';
     alertType.value = '';
-    form.value = parseFloat(form.value) || 0; // Ensure value is a number
+    form.value = parseFloat(form.value) || 0;
     if (!validate()) {
         console.log('Client-side validation failed:', errors.value);
         alertMessage.value = Object.values(errors.value).join('; ');
@@ -80,11 +120,13 @@ const submit = () => {
         return;
     }
 
-    console.log('Submitting form with data:', form.data());
+    const formData = form.data();
+    console.log('Submitting form with data:', formData);
 
     form.put(route('inventory.update', { id: props.item.id }), {
         preserveState: true,
         preserveScroll: true,
+        forceFormData: true,
         onBefore: () => {
             console.log('Starting form submission');
         },
@@ -96,6 +138,7 @@ const submit = () => {
                 form.reset();
                 alertMessage.value = '';
                 alertType.value = '';
+                imagePreview.value = null;
                 router.visit(route('inventory.index'), {
                     method: 'get',
                     preserveState: false,
@@ -103,12 +146,12 @@ const submit = () => {
                         console.log('Redirected to inventory.index');
                     },
                 });
-            }, 1000); // Match employee Edit.vue timing
+            }, 1000);
         },
         onError: (serverErrors) => {
             console.log('Server validation errors:', serverErrors);
             errors.value = serverErrors;
-            alertMessage.value = serverErrors.general || Object.values(serverErrors).join('; ') || 'Failed to update inventory item';
+            alertMessage.value = serverErrors.image || serverErrors.general || Object.values(serverErrors).join('; ') || 'Failed to update inventory item';
             alertType.value = 'error';
         },
         onFinish: () => {
@@ -122,14 +165,14 @@ const submit = () => {
     <div class="relative">
         <!-- Alert -->
         <div
-    v-if="alertMessage && alertType"
-    class="bg-green-100 border-l-4 border-green-400 text-green-700 p-4 rounded-r-md"
-    :class="{ 'bg-red-100 border-red-400 text-red-700': alertType === 'error' }"
-    role="alert"
->
-    <p class="font-medium">{{ alertType === 'success' ? 'Success' : 'Error' }}</p>
-    <p>{{ alertMessage }}</p>
-</div>
+            v-if="alertMessage && alertType"
+            class="bg-green-100 border-l-4 border-green-400 text-green-700 p-4 rounded-r-md"
+            :class="{ 'bg-red-100 border-red-400 text-red-700': alertType === 'error' }"
+            role="alert"
+        >
+            <p class="font-medium">{{ alertType === 'success' ? 'Success' : 'Error' }}</p>
+            <p>{{ alertMessage }}</p>
+        </div>
 
         <form @submit.prevent="submit" class="space-y-4">
             <h2 class="text-lg font-semibold text-gray-900">Update Inventory Item</h2>
@@ -226,11 +269,43 @@ const submit = () => {
                         class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                         <option value="" disabled>Select Status</option>
+                        <option value="Good">Good</option>
                         <option value="Check">Check</option>
                         <option value="Repair">Repair</option>
                         <option value="Upgrade">Upgrade</option>
                     </select>
                     <span v-if="errors.status" class="text-red-600 text-sm">{{ errors.status }}</span>
+                </div>
+                <div>
+                    <Label for="return_date">Return Date</Label>
+                    <Input
+                        id="return_date"
+                        v-model="form.return_date"
+                        type="date"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <span v-if="errors.return_date" class="text-red-600 text-sm">{{ errors.return_date }}</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-4 text-black">
+                <div>
+                    <Label for="image">Image</Label>
+                    <Input
+                        id="image"
+                        type="file"
+                        accept="image/*"
+                        @change="onImageChange"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <span v-if="errors.image" class="text-red-600 text-sm">{{ errors.image }}</span>
+                    <img
+                        v-if="imagePreview"
+                        :src="imagePreview"
+                        alt="Image Preview"
+                        class="mt-2 max-w-full h-auto"
+                        style="max-width: 200px;"
+                    />
                 </div>
             </div>
 

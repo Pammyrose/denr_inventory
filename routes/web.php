@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 
 Route::get('/', function () {
-    return Inertia::render('Welcome');
+    return Inertia::render('auth/Login');
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -54,6 +54,7 @@ Route::get('/profile', [ProfileController::class, 'show'])->name('profile'); // 
         Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
         Route::get('/inventory/{inventory}', [InventoryController::class, 'view'])->name('inventory.view');
         Route::get('/inventory/tag/{inventory}', [InventoryController::class, 'tag'])->name('inventory.tag');
+   
 
         Route::get('/report', [ReportController::class, 'index'])->name('report.index')
     ->middleware(['auth', 'verified', 'admin']);

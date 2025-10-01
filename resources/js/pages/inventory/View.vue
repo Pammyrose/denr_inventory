@@ -1,3 +1,4 @@
+
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -16,6 +17,7 @@ interface Asset {
     employee_id: number | null;
     status: string;
     qr_code: string | null;
+    image: string | null; // Added image field
 }
 
 const props = defineProps<{
@@ -33,7 +35,7 @@ const downloadQrCode = () => {
     if (!props.asset?.qr_code) return;
     const link = document.createElement('a');
     link.href = props.asset.qr_code;
-    link.download = `asset_${props.asset.id}.png`; // Changed to .png
+    link.download = `asset_${props.asset.id}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -62,15 +64,29 @@ const downloadQrCode = () => {
                         <p><strong>Status:</strong> <span class="text-black text-sm">{{ asset.status }}</span></p>
                     </div>
                 </div>
-                <div v-if="asset.qr_code" class="mt-4 text-center">
+                <div class="grid grid-cols-2">
+                                    <div v-if="asset.qr_code" class="mt-20 text-center">
                     <h3 class="text-lg font-semibold">QR Code</h3>
-                    <img :src="asset.qr_code" alt="Asset QR Code" class="mx-auto mt-2" style="width: 200px; height: 200px;" />
+                    <img :src="asset.qr_code" alt="Asset QR Code" class="mx-auto mt-2" style="width: 300px; height: 300px;" />
                     <Button @click="downloadQrCode" class="mt-2 bg-blue-600 text-white hover:bg-blue-700">
                         Download QR Code
                     </Button>
                 </div>
+                
                 <div v-else class="mt-4 text-center text-red-600">
                     <p>Failed to generate QR code. Please try again.</p>
+                </div>
+                <div v-if="asset.image" class="mt-4 text-center">
+                    <h3 class="text-lg font-semibold">Asset Image</h3>
+         <img
+            :src="asset.image"
+           alt="Asset Image"
+            class="mx-auto mt-2 transition-all duration-300 max-w-full"
+            style="height: auto;"
+           
+        />
+                </div>
+
                 </div>
             </div>
             <div v-else class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">

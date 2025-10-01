@@ -19,6 +19,8 @@ return new class extends Migration
             $table->string('condition');
             $table->string('assigned')->nullable(); // Or foreignId('assigned')->nullable()->constrained('employees')
             $table->string('status');
+            $table->string('image')->nullable();
+            $table->date('return_date')->nullable();
             $table->timestamps();
         });
     }
