@@ -15,58 +15,31 @@ use Illuminate\Validation\Rule;
 
 class UsersController extends Controller
 {
-    public function index()
+public function index()
     {
         return Inertia::render('users/Index', [
             'users' => User::all()->map(function ($user) {
+                // Fetch the associated employee
+                $employee = Employee::where('email', $user->email)->first();
+                // Construct full name from employee data or fallback to 'Unknown User'
+                $fullName = $employee 
+                    ? trim(($employee->first_name ?? '') . ' ' . ($employee->middle_name ?? '') . ' ' . ($employee->last_name ?? ''))
+                    : 'Unknown User';
+
                 return [
                     'id' => (int) $user->id,
-                    'full_name' => $user->name ?? 'Unknown User',
+                    'full_name' => $fullName,
                     'email' => $user->email,
                 ];
             })->toArray(),
         ]);
     }
 
-    public function store(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'full_name' => 'nullable|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:8|confirmed',
-        ]);
-
-        if ($validator->fails()) {
-            Log::warning('UsersController@store: Validation failed', [
-                'errors' => $validator->errors()->toArray(),
-                'input' => $request->all(),
-            ]);
-            return back()->withErrors($validator)->withInput();
-        }
-
-        User::create([
-            'name' => $request->full_name ?: 'Unknown User',
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
-
-        session()->flash('message', 'User created successfully');
-        return Inertia::location(route('users.index'));
-    }
-
     public function show(User $user)
     {
-        // Log request start
         Log::info('UsersController@show: Starting request processing', [
             'user_id' => $user->id,
             'user_email' => $user->email,
-        ]);
-
-        // Log user data
-        Log::info('UsersController@show: User data', [
-            'user_id' => $user->id ?? 'null',
-            'user_name' => $user->name ?? 'null',
-            'user_email' => $user->email ?? 'null',
         ]);
 
         // Fetch employee with relationships
@@ -87,14 +60,19 @@ class UsersController extends Controller
             ]);
         }
 
+        // Construct full name from employee data or fallback
+        $fullName = $employee 
+            ? trim(($employee->first_name ?? '') . ' ' . ($employee->middle_name ?? '') . ' ' . ($employee->last_name ?? ''))
+            : 'Unknown User';
+
         // Build profileUser array
         $profileUser = [
             'id' => $user->id ?? 0,
-            'full_name' => $user->name ?? 'Unknown User',
+            'full_name' => $fullName,
             'email' => $user->email ?? 'N/A',
             'role' => isset($user->is_admin) ? ($user->is_admin ? 'Admin' : 'User') : 'User',
             'assets' => [],
-            'employee' => null, // New: Employee details
+            'employee' => null,
         ];
 
         // Add employee details if found
@@ -137,7 +115,6 @@ class UsersController extends Controller
             }
         }
 
-        // Log final data
         Log::info('UsersController@show: Final profile data', [
             'profile_user' => $profileUser,
         ]);
@@ -146,6 +123,34 @@ class UsersController extends Controller
             'user' => $profileUser,
         ]);
     }
+
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'full_name' => 'nullable|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|min:8|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            Log::warning('UsersController@store: Validation failed', [
+                'errors' => $validator->errors()->toArray(),
+                'input' => $request->all(),
+            ]);
+            return back()->withErrors($validator)->withInput();
+        }
+
+        User::create([
+            'name' => $request->full_name ?: 'Unknown User',
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+        ]);
+
+        session()->flash('message', 'User created successfully');
+        return Inertia::location(route('users.index'));
+    }
+
+   
 
     public function update(Request $request, User $user)
     {

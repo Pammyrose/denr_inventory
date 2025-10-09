@@ -19,16 +19,16 @@ class CreateEmployeesTable extends Migration
             $table->string('emp_status');
 
             // ✅ Use foreign key IDs instead of names
-            $table->unsignedBigInteger('position_id');
-            $table->unsignedBigInteger('assignment_id');
-            $table->unsignedBigInteger('org_unit_id');
+            $table->unsignedBigInteger('position_name');
+            $table->unsignedBigInteger('assignment_name');
+            $table->unsignedBigInteger('div_sec_unit');
 
             $table->timestamps();
 
             // ✅ Proper foreign key constraints
-            $table->foreign('position_id')->references('id')->on('positions')->onDelete('restrict');
-            $table->foreign('assignment_id')->references('id')->on('assignment_places')->onDelete('restrict');
-            $table->foreign('org_unit_id')->references('id')->on('org_units')->onDelete('restrict');
+            $table->foreign('position_name')->references('id')->on('positions')->onDelete('restrict');
+            $table->foreign('assignment_name')->references('id')->on('assignment_places')->onDelete('restrict');
+            $table->foreign('div_sec_unit')->references('id')->on('org_units')->onDelete('restrict');
         });
     }
 

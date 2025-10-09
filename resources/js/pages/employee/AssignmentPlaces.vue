@@ -1,4 +1,3 @@
-
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useForm } from '@inertiajs/vue3';
@@ -22,24 +21,27 @@ const validateAssignmentPlace = () => {
 };
 
 const submitAssignmentPlace = () => {
+    console.log('AssignmentPlaces.vue: Submitting assignment place:', assignmentPlaceForm.data());
     if (!validateAssignmentPlace()) {
-        console.log('Client-side validation failed for assignment place:', assignmentPlaceErrors.value);
+        console.log('AssignmentPlaces.vue: Client-side validation failed:', assignmentPlaceErrors.value);
         return;
     }
-
-    console.log('Submitting assignment place form with data:', assignmentPlaceForm.data());
 
     assignmentPlaceForm.post(route('employee.assignmentPlace'), {
         preserveScroll: true,
         onSuccess: (page) => {
-            console.log('Assignment place submission successful. Flash data:', page.props.flash);
-            const newAssignmentPlace = page.props.flash.assignmentPlace || { value: page.props.flash.id, label: assignmentPlaceForm.name };
+            console.log('AssignmentPlaces.vue: Submission successful, flash data:', page.props.flash);
+            const newAssignmentPlace = page.props.flash.assignmentPlace || {
+                value: page.props.flash.id || assignmentPlaceForm.name,
+                label: assignmentPlaceForm.name,
+            };
+            console.log('AssignmentPlaces.vue: Emitting newAssignmentPlace:', newAssignmentPlace);
             emit('add-assignment-place', newAssignmentPlace);
             assignmentPlaceForm.reset();
             emit('close');
         },
         onError: (serverErrors) => {
-            console.log('Server validation errors for assignment place:', serverErrors);
+            console.log('AssignmentPlaces.vue: Server validation errors:', serverErrors);
             assignmentPlaceErrors.value = serverErrors;
         },
     });

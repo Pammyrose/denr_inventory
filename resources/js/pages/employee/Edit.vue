@@ -14,9 +14,9 @@ interface Employee {
     sex: string;
     email: string;
     emp_status: string;
-    position_id?: string;
-    assignment_id?: string;
-    org_unit_id?: string;
+    position_name?: string;
+    assignment_name?: string;
+    div_sec_unit?: string;
 }
 
 const props = defineProps<{
@@ -28,9 +28,9 @@ const props = defineProps<{
     close: () => void;
 }>();
 
-// Compute the salary grade based on the selected position_id
+// Compute the salary grade based on the selected position_name
 const selectedPosition = computed(() => {
-    return props.positions?.find(pos => pos.value === form.position_id);
+    return props.positions?.find(pos => pos.value === form.position_name);
 });
 
 const form = useForm({
@@ -43,9 +43,9 @@ const form = useForm({
     password: '',
     password_confirmation: '',
     emp_status: props.employee.emp_status,
-    position_id: props.employee.position_id ? String(props.employee.position_id) : '',
-    assignment_id: props.employee.assignment_id ? String(props.employee.assignment_id) : '',
-    org_unit_id: props.employee.org_unit_id ? String(props.employee.org_unit_id) : '',
+    position_name: props.employee.position_name ? String(props.employee.position_name) : '',
+    assignment_name: props.employee.assignment_name ? String(props.employee.assignment_name) : '',
+    div_sec_unit: props.employee.div_sec_unit ? String(props.employee.div_sec_unit) : '',
 });
 
 const errors = ref<{ [key: string]: string }>({});
@@ -58,9 +58,9 @@ const validate = () => {
     if (!form.last_name) errors.value.last_name = 'Last name is required';
     if (!form.sex) errors.value.sex = 'Sex is required';
     if (!form.emp_status) errors.value.emp_status = 'Employee status is required';
-    if (!form.position_id) errors.value.position_id = 'Position is required';
-    if (!form.assignment_id) errors.value.assignment_id = 'Assignment is required';
-    if (!form.org_unit_id) errors.value.org_unit_id = 'Division Section Unit is required';
+    if (!form.position_name) errors.value.position_name = 'Position is required';
+    if (!form.assignment_name) errors.value.assignment_name = 'Assignment is required';
+    if (!form.div_sec_unit) errors.value.div_sec_unit = 'Division Section Unit is required';
     if (form.password && form.password !== form.password_confirmation) errors.value.password_confirmation = 'Passwords do not match';
     return Object.keys(errors.value).length === 0;
 };
@@ -155,25 +155,25 @@ const submit = () => {
                 </div>
 
                 <div class="relative">
-                    <Label for="org_unit_id">Division Section Unit</Label>
-                    <select id="org_unit_id" v-model="form.org_unit_id">
+                    <Label for="div_sec_unit">Division Section Unit</Label>
+                    <select id="div_sec_unit" v-model="form.div_sec_unit">
                         <option value="" disabled>Select Division Section Unit</option>
                         <option v-for="unit in props.orgUnits" :key="unit.value" :value="unit.value">
                             {{ unit.label }}
                         </option>
                     </select>
-                    <span v-if="errors.org_unit_id" class="text-red-600 text-sm">{{ errors.org_unit_id }}</span>
+                    <span v-if="errors.div_sec_unit" class="text-red-600 text-sm">{{ errors.div_sec_unit }}</span>
                 </div>
 
                 <div class="relative">
-                    <Label for="position_id">Position</Label>
-                    <select id="position_id" v-model="form.position_id" required>
+                    <Label for="position_name">Position</Label>
+                    <select id="position_name" v-model="form.position_name" required>
                         <option value="" disabled>Select Position</option>
                         <option v-for="pos in props.positions" :key="pos.value" :value="pos.value">
                             {{ pos.item_code }} - {{ pos.label }}
                         </option>
                     </select>
-                    <span v-if="errors.position_id" class="text-red-600 text-sm">{{ errors.position_id }}</span>
+                    <span v-if="errors.position_name" class="text-red-600 text-sm">{{ errors.position_name }}</span>
                 </div>
 
                 <div class="relative">
@@ -200,14 +200,14 @@ const submit = () => {
                     <span v-if="errors.emp_status" class="text-red-600 text-sm">{{ errors.emp_status }}</span>
                 </div>
                 <div class="relative">
-                    <Label for="assignment_id">Assignment</Label>
-                    <select id="assignment_id" v-model="form.assignment_id">
+                    <Label for="assignment_name">Assignment</Label>
+                    <select id="assignment_name" v-model="form.assignment_name">
                         <option value="" disabled>Select Assignment</option>
                         <option v-for="opt in props.assignmentPlaces" :key="opt.value" :value="opt.value">
                             {{ opt.label }}
                         </option>
                     </select>
-                    <span v-if="errors.assignment_id" class="text-red-600 text-sm">{{ errors.assignment_id }}</span>
+                    <span v-if="errors.assignment_name" class="text-red-600 text-sm">{{ errors.assignment_name }}</span>
                 </div>
 
                 <div>

@@ -252,7 +252,7 @@ onMounted(() => {
                 class="fixed inset-0 z-50 flex items-center justify-center bg-transparent transition-opacity duration-300"
                 @click.self="closeCreateModal"
             >
-                <div class="bg-white rounded-xl shadow-lg w-full max-w-3xl p-6 relative border border-gray-300">
+                <div class="bg-white rounded-xl shadow-lg w-full max-w-6xl p-6 relative border border-gray-300">
                     <button
                         @click="closeCreateModal"
                         class="absolute top-3 right-3 text-gray-600 hover:text-gray-800 focus:outline-none"

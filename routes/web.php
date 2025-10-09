@@ -17,6 +17,8 @@ Route::get('/', function () {
     return Inertia::render('auth/Login');
 })->name('home');
 
+Route::get('/inventory/tag/{inventory}', [InventoryController::class, 'tag'])->name('inventory.tag');
+
 Route::middleware(['auth', 'verified'])->group(function () {
 // Profile route for all authenticated users (now using controller)
 Route::get('/profile', [ProfileController::class, 'show'])->name('profile'); // Updated to use controller
@@ -53,7 +55,9 @@ Route::get('/profile', [ProfileController::class, 'show'])->name('profile'); // 
         Route::put('/inventory/{inventory}', [InventoryController::class, 'update'])->name('inventory.update');
         Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
         Route::get('/inventory/{inventory}', [InventoryController::class, 'view'])->name('inventory.view');
-        Route::get('/inventory/tag/{inventory}', [InventoryController::class, 'tag'])->name('inventory.tag');
+        Route::post('/inventory/tags/print', [InventoryController::class, 'printTags'])->name('inventory.printTags');
+        
+      
    
 
         Route::get('/report', [ReportController::class, 'index'])->name('report.index')

@@ -23,10 +23,12 @@ class InventoryController extends Controller
                 ? trim("{$assignedTo->first_name} {$assignedTo->middle_name} {$assignedTo->last_name}")
                 : 'Unassigned';
             
+            $imageUrl = $item->image ? Storage::url($item->image) : null;
             Log::info('Asset Processing', [
                 'asset_id' => $item->asset_id,
                 'assigned' => $item->assigned,
-                'full_name' => $fullName
+                'full_name' => $fullName,
+                'image' => $imageUrl,
             ]);
 
             return [
@@ -40,8 +42,15 @@ class InventoryController extends Controller
                 'assigned_to' => $fullName,
                 'employee_id' => $item->assigned,
                 'status' => $item->status,
-                'image' => $item->image ? Storage::url($item->image) : null, // Added image URL
-               
+                'property_no' => $item->property_no,
+                'serial_no' => $item->serial_no,
+                'serviceable' => $item->serviceable,
+                'unserviceable' => $item->unserviceable,
+                'coa_representative' => $item->coa_representative,
+                'coa_date' => $item->coa_date,
+                'assigned_date' => $item->assigned_date,
+                'unit_qty' => $item->unit_qty,
+                'image' => $imageUrl,
             ];
         })->toArray();
 
@@ -84,19 +93,41 @@ class InventoryController extends Controller
             'name' => 'required|string|max:255',
             'category' => 'required|string|max:255',
             'location' => 'required|string|max:255',
-            'purchase_date' => 'required|date|max:255',
+            'purchase_date' => 'required|date',
             'value' => 'required|numeric|min:0|max:9999999.99',
             'condition' => 'required|string|max:255',
             'assigned' => 'nullable|integer|exists:employees,id',
             'status' => 'required|string|max:255',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Added image validation
-           
+            'property_no' => 'required|string|max:255',
+            'serial_no' => 'required|string|max:255',
+            'serviceable' => 'required|string|max:255',
+            'unserviceable' => 'required|string|max:255',
+            'coa_representative' => 'required|string|max:255',
+            'coa_date' => 'required|date',
+            'assigned_date' => 'required|date',
+            'unit_qty' => 'required|numeric|min:0|max:9999999.99',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         // Handle image upload
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('assets', 'public');
+            $file = $request->file('image');
+            $path = $file->store('assets', 'public');
+            if (!Storage::disk('public')->exists($path)) {
+                Log::error('Image storage failed', ['path' => $path]);
+                return Inertia::render('inventory/Create', [
+                    'employees' => Employee::all()->map(function ($employee) {
+                        $fullName = trim("{$employee->first_name} {$employee->middle_name} {$employee->last_name}");
+                        return [
+                            'id' => $employee->id,
+                            'full_name' => $fullName ?: 'Unnamed Employee',
+                        ];
+                    })->toArray(),
+                    'error' => 'Failed to store image',
+                ]);
+            }
             $data['image'] = $path;
+            Log::info('Image stored successfully', ['path' => $path, 'url' => Storage::url($path)]);
         }
 
         // Generate asset_id
@@ -144,8 +175,15 @@ class InventoryController extends Controller
                     'condition' => $asset->condition,
                     'assigned_to' => $asset->assigned ? (int)$asset->assigned : null,
                     'status' => $asset->status,
-                    'image' => $asset->image ? Storage::url($asset->image) : null,
-                   
+                    'property_no' => $asset->property_no,
+                    'serial_no' => $asset->serial_no,
+                    'serviceable' => $asset->serviceable,
+                    'unserviceable' => $asset->unserviceable,
+                    'coa_representative' => $asset->coa_representative,
+                    'coa_date' => $asset->coa_date,
+                    'assigned_date' => $asset->assigned_date,
+                    'unit_qty' => $asset->unit_qty,
+                    'image' => $asset->image ? Storage::disk('public')->url($asset->image) : null,
                 ],
             ]);
         }
@@ -169,12 +207,19 @@ class InventoryController extends Controller
                 'condition' => $asset->condition,
                 'assigned_to' => $asset->assigned ? (int)$asset->assigned : null,
                 'status' => $asset->status,
-                'image' => $asset->image ? Storage::url($asset->image) : null,
+                'property_no' => $asset->property_no,
+                'serial_no' => $asset->serial_no,
+                'serviceable' => $asset->serviceable,
+                'unserviceable' => $asset->unserviceable,
+                'coa_representative' => $asset->coa_representative,
+                'coa_date' => $asset->coa_date,
+                'assigned_date' => $asset->assigned_date,
+                'unit_qty' => $asset->unit_qty,
+                'image' => $asset->image ? Storage::disk('public')->url($asset->image) : null,
             ],
             'message' => 'Asset created successfully',
         ]);
     }
-
 
     public function edit(Inventory $inventory)
     {
@@ -189,7 +234,8 @@ class InventoryController extends Controller
         Log::info('Employees for Edit Form', [
             'employees' => $employees,
             'asset_id' => $inventory->asset_id,
-            'assigned' => $inventory->assigned
+            'assigned' => $inventory->assigned,
+            'image' => $inventory->image ? Storage::url($inventory->image) : null,
         ]);
 
         return Inertia::render('inventory/Edit', [
@@ -203,6 +249,15 @@ class InventoryController extends Controller
                 'condition' => $inventory->condition,
                 'assigned_to' => $inventory->assigned ? (int)$inventory->assigned : null,
                 'status' => $inventory->status,
+                'property_no' => $inventory->property_no,
+                'serial_no' => $inventory->serial_no,
+                'serviceable' => $inventory->serviceable,
+                'unserviceable' => $inventory->unserviceable,
+                'coa_representative' => $inventory->coa_representative,
+                'coa_date' => $inventory->coa_date,
+                'assigned_date' => $inventory->assigned_date,
+                'unit_qty' => $inventory->unit_qty,
+                'image' => $inventory->image ? Storage::url($inventory->image) : null,
             ],
             'employees' => $employees,
         ]);
@@ -216,11 +271,19 @@ class InventoryController extends Controller
             'name' => 'required|string|max:255',
             'category' => 'required|string|max:255',
             'location' => 'required|string|max:255',
-            'purchase_date' => 'required|date|max:255',
+            'purchase_date' => 'required|date',
             'value' => 'required|numeric|min:0|max:9999999.99',
             'condition' => 'required|string|max:255',
             'assigned_to' => 'nullable|integer|exists:employees,id',
             'status' => 'required|string|max:255',
+            'property_no' => 'required|string|max:255',
+            'serial_no' => 'required|string|max:255',
+            'serviceable' => 'required|string|max:255',
+            'unserviceable' => 'required|string|max:255',
+            'coa_representative' => 'required|string|max:255',
+            'coa_date' => 'required|date',
+            'assigned_date' => 'required|date',
+            'unit_qty' => 'required|numeric|min:0|max:9999999.99',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
@@ -241,6 +304,14 @@ class InventoryController extends Controller
                 'condition' => $request->condition,
                 'assigned' => $request->assigned_to,
                 'status' => $request->status,
+                'property_no' => $request->property_no,
+                'serial_no' => $request->serial_no,
+                'serviceable' => $request->serviceable,
+                'unserviceable' => $request->unserviceable,
+                'coa_representative' => $request->coa_representative,
+                'coa_date' => $request->coa_date,
+                'unit_qty' => $request->unit_qty,
+                'assigned_date' => $request->assigned_date,
             ];
 
             // Handle image upload
@@ -249,7 +320,14 @@ class InventoryController extends Controller
                 if ($inventory->image) {
                     Storage::disk('public')->delete($inventory->image);
                 }
-                $inventoryData['image'] = $request->file('image')->store('assets', 'public');
+                $file = $request->file('image');
+                $path = $file->store('assets', 'public');
+                if (!Storage::disk('public')->exists($path)) {
+                    Log::error('Image storage failed during update', ['path' => $path]);
+                    throw new \Exception('Failed to store image');
+                }
+                $inventoryData['image'] = $path;
+                Log::info('Image updated successfully', ['path' => $path, 'url' => Storage::url($path)]);
             }
 
             $inventory->update($inventoryData);
@@ -265,7 +343,7 @@ class InventoryController extends Controller
         }
     }
 
-   public function destroy(Inventory $inventory)
+    public function destroy(Inventory $inventory)
     {
         try {
             DB::beginTransaction();
@@ -288,75 +366,83 @@ class InventoryController extends Controller
     }
 
     public function view(Request $request, $inventory)
-{
-    Log::info('View Method Called', ['inventory_param' => $inventory]);
+    {
+        Log::info('View Method Called', ['inventory_param' => $inventory]);
 
-    $inventoryModel = Inventory::where('asset_id', $inventory)->first();
-    Log::info('Inventory Query', ['asset_id' => $inventory, 'result' => $inventoryModel ? $inventoryModel->toArray() : null]);
+        $inventoryModel = Inventory::where('asset_id', $inventory)->first();
+        Log::info('Inventory Query', ['asset_id' => $inventory, 'result' => $inventoryModel ? $inventoryModel->toArray() : null]);
 
-    if (!$inventoryModel) {
-        Log::error('Inventory not found', ['asset_id' => $inventory]);
+        if (!$inventoryModel) {
+            Log::error('Inventory not found', ['asset_id' => $inventory]);
+            return Inertia::render('inventory/View', [
+                'asset' => null,
+                'error' => 'Asset not found for ID: ' . $inventory
+            ]);
+        }
+
+        $assignedTo = $inventoryModel->assigned ? Employee::find($inventoryModel->assigned) : null;
+        $fullName = $assignedTo 
+            ? trim("{$assignedTo->first_name} {$assignedTo->middle_name} {$assignedTo->last_name}")
+            : 'Unassigned';
+
+        $viewUrl = $request->getSchemeAndHttpHost() . route(
+            'inventory.tag',
+            ['inventory' => $inventoryModel->asset_id],
+            false
+        );
+
+        Log::info('QR Code URL', ['url' => $viewUrl]);
+
+        try {
+            $qrCode = new QrCode($viewUrl);
+            $writer = new PngWriter();
+            $result = $writer->write($qrCode);
+            $qrCodeBase64 = 'data:image/png;base64,' . base64_encode($result->getString());
+            Log::info('Viewing Asset', [
+                'asset_id' => $inventoryModel->asset_id,
+                'assigned' => $inventoryModel->assigned,
+                'full_name' => $fullName,
+                'image' => $inventoryModel->image ? Storage::url($inventoryModel->image) : null,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('QR Code Generation Failed in View', [
+                'asset_id' => $inventoryModel->asset_id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            $qrCodeBase64 = null;
+        }
+
+        $assetData = [
+            'id' => (string) $inventoryModel->asset_id,
+            'name' => (string) $inventoryModel->name,
+            'category' => (string) $inventoryModel->category,
+            'location' => (string) $inventoryModel->location,
+            'purchase_date' => (string) $inventoryModel->purchase_date,
+            'value' => (float) $inventoryModel->value,
+            'condition' => (string) $inventoryModel->condition,
+            'assigned_to' => (string) $fullName,
+            'employee_id' => $inventoryModel->assigned ? (int)$inventoryModel->assigned : null,
+            'status' => (string) $inventoryModel->status,
+            'property_no' => (string) $inventoryModel->property_no,
+            'serial_no' => (string) $inventoryModel->serial_no,
+            'serviceable' => (string) $inventoryModel->serviceable,
+            'unserviceable' => (string) $inventoryModel->unserviceable,
+            'coa_representative' => (string) $inventoryModel->coa_representative,
+            'coa_date' => (string) $inventoryModel->coa_date,
+            'assigned_date' => (string) $inventoryModel->assigned_date,
+            'unit_qty' => (float) $inventoryModel->unit_qty,
+            'qr_code' => $qrCodeBase64,
+            'image' => $inventoryModel->image ? Storage::url($inventoryModel->image) : null,
+        ];
+
+        Log::info('View Asset Data', ['asset' => $assetData]);
+
         return Inertia::render('inventory/View', [
-            'asset' => null,
-            'error' => 'Asset not found for ID: ' . $inventory
+            'asset' => $assetData,
+            'error' => null
         ]);
     }
-
-    $assignedTo = $inventoryModel->assigned ? Employee::find($inventoryModel->assigned) : null;
-    $fullName = $assignedTo 
-        ? trim("{$assignedTo->first_name} {$assignedTo->middle_name} {$assignedTo->last_name}")
-        : 'Unassigned';
-
-    $viewUrl = $request->getSchemeAndHttpHost() . route(
-        'inventory.tag',
-        ['inventory' => $inventoryModel->asset_id],
-        false
-    );
-
-    Log::info('QR Code URL', ['url' => $viewUrl]);
-
-    try {
-        $qrCode = new QrCode($viewUrl);
-        $writer = new PngWriter();
-        $result = $writer->write($qrCode);
-        $qrCodeBase64 = 'data:image/png;base64,' . base64_encode($result->getString());
-        Log::info('Viewing Asset', [
-            'asset_id' => $inventoryModel->asset_id,
-            'assigned' => $inventoryModel->assigned,
-            'full_name' => $fullName,
-            'image' => $inventoryModel->image
-        ]);
-    } catch (\Exception $e) {
-        Log::error('QR Code Generation Failed in View', [
-            'asset_id' => $inventoryModel->asset_id,
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ]);
-        $qrCodeBase64 = null;
-    }
-
-    $assetData = [
-        'id' => (string) $inventoryModel->asset_id,
-        'name' => (string) $inventoryModel->name,
-        'category' => (string) $inventoryModel->category,
-        'location' => (string) $inventoryModel->location,
-        'purchase_date' => (string) $inventoryModel->purchase_date,
-        'value' => (float) $inventoryModel->value,
-        'condition' => (string) $inventoryModel->condition,
-        'assigned_to' => (string) $fullName,
-        'employee_id' => $inventoryModel->assigned ? (int)$inventoryModel->assigned : null,
-        'status' => (string) $inventoryModel->status,
-        'qr_code' => $qrCodeBase64,
-        'image' => $inventoryModel->image ? Storage::url($inventoryModel->image) : null,
-    ];
-
-    Log::info('View Asset Data', ['asset' => $assetData]);
-
-    return Inertia::render('inventory/View', [
-        'asset' => $assetData,
-        'error' => null
-    ]);
-}
 
     public function tag(Request $request, $inventory)
     {
@@ -394,7 +480,8 @@ class InventoryController extends Controller
             Log::info('Viewing Asset Tag', [
                 'asset_id' => $inventoryModel->asset_id,
                 'assigned' => $inventoryModel->assigned,
-                'full_name' => $fullName
+                'full_name' => $fullName,
+                'image' => $inventoryModel->image ? Storage::url($inventoryModel->image) : null,
             ]);
         } catch (\Exception $e) {
             Log::error('QR Code Generation Failed in Tag', [
@@ -416,7 +503,16 @@ class InventoryController extends Controller
             'assigned_to' => (string) $fullName,
             'employee_id' => $inventoryModel->assigned ? (int)$inventoryModel->assigned : null,
             'status' => (string) $inventoryModel->status,
+            'property_no' => (string) $inventoryModel->property_no,
+            'serial_no' => (string) $inventoryModel->serial_no,
+            'serviceable' => (string) $inventoryModel->serviceable,
+            'unserviceable' => (string) $inventoryModel->unserviceable,
+            'coa_representative' => (string) $inventoryModel->coa_representative,
+            'coa_date' => (string) $inventoryModel->coa_date,
+            'assigned_date' => (string) $inventoryModel->assigned_date,
+            'unit_qty' => (float) $inventoryModel->unit_qty,
             'qr_code' => $qrCodeBase64,
+            'image' => $inventoryModel->image ? Storage::url($inventoryModel->image) : null,
         ];
     
         Log::info('Tag Asset Data', ['asset' => $assetData]);
@@ -426,4 +522,6 @@ class InventoryController extends Controller
             'error' => null
         ]);
     }
+
+    
 }

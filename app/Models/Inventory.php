@@ -18,8 +18,16 @@ class Inventory extends Model
         'condition',
         'assigned',
         'status',
+        'property_no',
+        'serial_no',
+        'serviceable',
+        'unserviceable',
+        'coa_representative',
+        'coa_date',
+        'assigned_date',
         'image',
         'return_date',
+        'unit_qty',
     ];
 
     protected $primaryKey = 'id';
@@ -37,6 +45,6 @@ class Inventory extends Model
      */
     public function employee(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
-        return $this->belongsTo(Employee::class, 'assigned'); // Fixed to use 'assigned'
+        return $this->belongsTo(Employee::class, 'assigned');
     }
 }

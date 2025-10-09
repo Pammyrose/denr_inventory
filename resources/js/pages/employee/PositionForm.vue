@@ -24,28 +24,30 @@ const validatePosition = () => {
 };
 
 const submitPosition = () => {
-    console.log('Attempting to submit position:', positionForm.data());
+    console.log('PositionForm.vue: Attempting to submit position:', positionForm.data());
     if (!validatePosition()) {
-        console.log('Client-side validation failed for position:', positionErrors.value);
+        console.log('PositionForm.vue: Client-side validation failed:', positionErrors.value);
         return;
     }
 
     positionForm.post(route('employee.position'), {
         preserveScroll: true,
         onSuccess: (page) => {
-            console.log('Position submission successful:', page);
+            console.log('PositionForm.vue: Position submission successful, flash data:', page.props.flash);
             const newPosition = page.props.flash.position || {
                 value: positionForm.item_code,
                 label: positionForm.name,
                 item_code: positionForm.item_code,
                 salary_grade: positionForm.salary_grade,
+                org_code: '',
             };
+            console.log('PositionForm.vue: Emitting newPosition:', newPosition);
             emit('store-position', newPosition);
             positionForm.reset();
             emit('close');
         },
         onError: (serverErrors) => {
-            console.log('Server validation errors for position:', serverErrors);
+            console.log('PositionForm.vue: Server validation errors:', serverErrors);
             positionErrors.value = serverErrors;
         },
     });
