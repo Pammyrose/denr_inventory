@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Line } from 'vue-chartjs';
-import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, PointElement, CategoryScale, LinearScale } from 'chart.js';
+import { Line, Pie } from 'vue-chartjs';
+import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, PointElement, CategoryScale, LinearScale, ArcElement } from 'chart.js';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/vue3';
@@ -9,7 +9,7 @@ import { format } from 'date-fns';
 import EmployeeIndex from '@/components/employee/Index.vue';
 
 // Register Chart.js components
-ChartJS.register(Title, Tooltip, Legend, LineElement, PointElement, CategoryScale, LinearScale);
+ChartJS.register(Title, Tooltip, Legend, LineElement, PointElement, CategoryScale, LinearScale, ArcElement);
 
 // Access the props passed from the backend
 const { props } = usePage();
@@ -18,7 +18,7 @@ const dashboardData = props.dashboardData as {
   users: number;
   assignedAssets: number;
   assets: number;
-  assignedPerDepartment: { name: string; value: number }[];
+  assetsByLocation: { name: string; value: number }[];
   purchasedAssets: { month: string; count: number }[];
   assetsByDay: { date: string; quantity: number }[];
   daysInMonth: number;
@@ -53,6 +53,23 @@ const formatDateLabel = (date: string) => {
   }
 };
 
+// Function to get location color
+const getLocationColor = (location: string): string => {
+  const colors: { [key: string]: string } = {
+    'PMD': '#3b82f6', // blue-500
+    'LPD': '#10b981', // emerald-500
+    'Finance': '#f59e0b', // amber-500
+    'Admin': '#ef4444', // red-500
+    'Legal': '#8b5cf6', // purple-500
+    'CDD': '#ec4899', // pink-500
+    'SAM': '#14b8a6', // teal-500
+    'Enforcement': '#f97316', // orange-500
+    'Technical': '#6ee7b7', // emerald-300
+    'MSD': '#d946ef', // fuchsia-500
+  };
+  return colors[location] || '#404040'; // gray-500 as fallback
+};
+
 // Reactive chart data for purchased assets (monthly)
 const chartDataMonthly = computed(() => ({
   labels: dashboardData.purchasedAssets.map(item => formatMonthLabel(item.month)),
@@ -83,6 +100,20 @@ const chartDataDaily = computed(() => ({
       pointRadius: 3,
       fill: false,
       tension: 0.5,
+    },
+  ],
+}));
+
+// Reactive chart data for assets by location (pie chart)
+const chartDataLocations = computed(() => ({
+  labels: dashboardData.assetsByLocation.map(item => item.name),
+  datasets: [
+    {
+      label: 'Assets by Location',
+      data: dashboardData.assetsByLocation.map(item => item.value),
+      backgroundColor: dashboardData.assetsByLocation.map(item => getLocationColor(item.name)),
+      borderColor: '#ffffff',
+      borderWidth: 2,
     },
   ],
 }));
@@ -161,7 +192,6 @@ const chartOptionsDaily = computed(() => ({
         },
       },
     },
-
     tooltip: {
       callbacks: {
         label: (context: any) => `${context.raw} units`,
@@ -210,6 +240,36 @@ const chartOptionsDaily = computed(() => ({
     },
   },
 }));
+
+// Reactive chart options for locations pie chart
+const chartOptionsLocations = computed(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'top' as const,
+      labels: {
+        color: '#1f2937', // gray-800
+        font: {
+          size: 12,
+        },
+      },
+    },
+    title: {
+      display: true,
+      text: 'Assets by Location',
+      color: '#1f2937',
+      font: {
+        size: 14,
+      },
+    },
+    tooltip: {
+      callbacks: {
+        label: (context: any) => `${context.label}: ${context.raw} units`,
+      },
+    },
+  },
+}));
 </script>
 
 <template>
@@ -253,21 +313,18 @@ const chartOptionsDaily = computed(() => ({
 
       <!-- Second Row: Charts -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- Pie Chart for Assigned Assets per Department -->
+        <!-- Pie Chart for Assets by Location -->
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Assigned Assets per Department</h3>
-          <div class="relative aspect-[4/3] max-w-[250px] mx-auto">
-            <svg viewBox="0 0 100 100" class="w-full h-full">
-              <circle cx="50" cy="50" r="40" fill="none" stroke="#3b82f6" stroke-width="20" stroke-dasharray="60 251.2" />
-              <circle cx="50" cy="50" r="40" fill="none" stroke="#10b981" stroke-width="20" stroke-dasharray="50 251.2" transform="rotate(90 50 50)" />
-              <circle cx="50" cy="50" r="40" fill="none" stroke="#f59e0b" stroke-width="20" stroke-dasharray="40 251.2" transform="rotate(180 50 50)" />
-              <circle cx="50" cy="50" r="40" fill="none" stroke="#ef4444" stroke-width="20" stroke-dasharray="30 251.2" transform="rotate(270 50 50)" />
-            </svg>
-            <div class="mt-4 flex flex-wrap justify-center gap-4">
-              <div v-for="dept in dashboardData.assignedPerDepartment" :key="dept.name" class="flex items-center">
-                <div class="w-4 h-4 mr-2" :style="{ backgroundColor: getDepartmentColor(dept.name) }"></div>
-                <span class="text-sm text-gray-900 dark:text-white">{{ dept.name }}: {{ dept.value }}</span>
-              </div>
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Assets by Location</h3>
+          <div class="relative h-[400px] max-w-[400px] mx-auto">
+            <Pie
+              v-if="dashboardData.assetsByLocation.length > 0"
+              :data="chartDataLocations"
+              :options="chartOptionsLocations"
+              class="w-full h-full"
+            />
+            <div v-else class="text-center text-gray-500">
+              No location data available.
             </div>
           </div>
         </div>
@@ -275,7 +332,6 @@ const chartOptionsDaily = computed(() => ({
         <!-- Line Charts Container -->
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Purchased Assets</h3>
-          <!-- Monthly Purchased Assets Chart -->
 
           <!-- Mini Daily Purchased Assets Chart -->
           <Link :href="route('report.index')">
@@ -296,53 +352,63 @@ const chartOptionsDaily = computed(() => ({
 
       <!-- Table Section -->
       <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
-        <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-          <thead class="text-xs text-white uppercase bg-gradient-to-b from-green-300 to-green-600">
-            <tr>
-              <th scope="col" class="px-6 py-3">Name</th>
-              <th scope="col" class="px-6 py-3">
-                <div class="flex items-center">
-                  Assigned Date
-                  <a href="#">
-                    <svg class="w-3 h-3 ms-1.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"/>
-                    </svg>
-                  </a>
-                </div>
-              </th>
-              <th scope="col" class="px-6 py-3">Status</th>
-              
-            </tr>
-          </thead>
-          <tbody>
-            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200">
-              <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                Pamela Rose Malasan
-              </th>
-              <td class="px-6 py-4">09-18-2025</td>
-              <td class="px-6 py-4">
-                <a href="#" class="font-medium text-blue-600 dark:text-blue-500 hover:underline">Open</a>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+  <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+    <thead class="text-xs text-white uppercase bg-gradient-to-b from-green-300 to-green-600">
+      <tr>
+        <th scope="col" class="px-6 py-3">Name</th>
+        <th scope="col" class="px-6 py-3">
+          <div class="flex items-center">
+            Assigned Date
+            <a href="#">
+              <svg
+                class="w-3 h-3 ms-1.5"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"
+                />
+              </svg>
+            </a>
+          </div>
+        </th>
+        <th scope="col" class="px-6 py-3">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr
+        v-for="(asset, index) in dashboardData.assignedAssetsTable"
+        :key="index"
+        class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200"
+      >
+        <th
+          scope="row"
+          class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
+        >
+          {{ asset.name }}
+        </th>
+        <td class="px-6 py-4">{{ asset.assigned_date }}</td>
+        <td class="px-6 py-4">
+          <a
+            href="#"
+            class="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+            >{{ asset.status }}</a
+          >
+        </td>
+      </tr>
+      <tr v-if="dashboardData.assignedAssetsTable.length === 0">
+        <td
+          colspan="3"
+          class="px-6 py-4 text-center text-gray-500 dark:text-gray-400"
+        >
+          No assets meet the criteria.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
     </div>
   </AppLayout>
 </template>
-
-<script lang="ts">
-export default {
-  methods: {
-    getDepartmentColor(department: string): string {
-      const colors: { [key: string]: string } = {
-        IT: '#3b82f6',
-        HR: '#10b981',
-        Finance: '#f59e0b',
-        Operations: '#ef4444',
-      };
-      return colors[department] || '#6b7280';
-    },
-  },
-};
-</script>

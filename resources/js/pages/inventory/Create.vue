@@ -218,11 +218,23 @@ const onImageChange = (event: Event) => {
                 </div>
                 <div>
                     <Label for="location">Location</Label>
-                    <Input
+                    <select
                         id="location"
                         v-model="form.location"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
+                        class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option value="" disabled>Select Location</option>
+                        <option value="PMD">PMD</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Legal">Legal</option>
+                        <option value="CDD">CDD</option>
+                        <option value="SAM">SAM</option>
+                        <option value="LPD">LPD</option>
+                        <option value="Enforcement">Enforcement</option>
+                        <option value="Technical">Technical</option>
+                        <option value="MSD">MSD</option>
+                    </select>
                     <span v-if="errors.location" class="text-red-600 text-sm">{{ errors.location }}</span>
                 </div>
             </div>

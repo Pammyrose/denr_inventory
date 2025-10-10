@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ReportController extends Controller
 {
@@ -14,7 +15,7 @@ class ReportController extends Controller
     {
         try {
             $currentYear = Carbon::now()->year; // 2025
-            $currentMonth = Carbon::now()->month; // 8
+            $currentMonth = Carbon::now()->month; // 10
             $selectedYear = min((int)$request->input('year', $currentYear), $currentYear);
             $selectedMonth = min(max((int)$request->input('month', $currentMonth), 1), 12);
             $monthStart = Carbon::create($selectedYear, $selectedMonth, 1)->startOfMonth();
@@ -23,7 +24,7 @@ class ReportController extends Controller
 
             DB::enableQueryLog();
             $assetsByDay = DB::table('assets')
-                ->selectRaw('COUNT(*) as quantity, DATE(purchase_date) as date')
+                ->selectRaw('SUM(unit_qty) as quantity, DATE(purchase_date) as date')
                 ->whereBetween('purchase_date', [$monthStart, $monthEnd])
                 ->groupBy('date')
                 ->orderBy('date', 'asc')
@@ -86,7 +87,7 @@ class ReportController extends Controller
                 $monthStart = $date->copy()->startOfMonth();
                 $monthEnd = $date->copy()->endOfMonth();
                 $totalSpend = Inventory::whereBetween('purchase_date', [$monthStart, $monthEnd])
-                    ->sum('value');
+                    ->sum('unit_qty');
                 $totalSpendByMonth[] = [
                     'month' => $date->format('Y-m'),
                     'label' => $date->format('M Y'),
@@ -95,8 +96,27 @@ class ReportController extends Controller
             }
             \Log::info('totalSpendByMonth Query:', DB::getQueryLog());
 
+            try {
+                $assetsByLocation = DB::table('assets')
+                    ->select('location', DB::raw('SUM(unit_qty) as value'))
+                    ->groupBy('location')
+                    ->get()
+                    ->mapWithKeys(function ($item) {
+                        return [$item->location => ['name' => $item->location, 'value' => (int)$item->value]];
+                    })
+                    ->toArray();
+
+                $assetsByLocation = array_values($assetsByLocation);
+
+                Log::info('Assets by Location', ['data' => $assetsByLocation]);
+            } catch (\Exception $e) {
+                Log::error('Error fetching assets by location: ' . $e->getMessage());
+                $assetsByLocation = [];
+            }
+
             return Inertia::render('report/Index', [
                 'assetsByDay' => $allDays,
+                'assetsByLocation' => $assetsByLocation,
                 'availableYears' => $availableYears->isEmpty() ? [[
                     'value' => (string)$currentYear,
                     'label' => (string)$currentYear,

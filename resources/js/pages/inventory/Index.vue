@@ -15,10 +15,11 @@ interface InventoryItem {
     category: string;
     location: string;
     purchase_date: string;
-    value: string;
+    unit_qty: string;
     condition: string;
     assigned_to: string;
     employee_id: number | null;
+    return_date: string;
     status: string;
 }
 
@@ -366,9 +367,10 @@ onMounted(() => {
                             <th scope="col" class="px-4 py-3 text-center">Category</th>
                             <th scope="col" class="px-4 py-3 text-center">Location</th>
                             <th scope="col" class="px-4 py-3 text-center">Purchase Date</th>
-                            <th scope="col" class="px-4 py-3 text-center">Value</th>
+                            <th scope="col" class="px-4 py-3 text-center">Units / Qty</th>
                             <th scope="col" class="px-4 py-3 text-center">Condition</th>
                             <th scope="col" class="px-4 py-3 text-center">Assigned To</th>
+                            <th scope="col" class="px-4 py-3 text-center">Return Date</th>
                             <th scope="col" class="px-4 py-3 text-center">Status</th>
                             <th scope="col" class="px-4 py-3 text-center">Action</th>
                         </tr>
@@ -384,9 +386,10 @@ onMounted(() => {
                             <td class="px-2 py-1 text-center">{{ item.category || 'N/A' }}</td>
                             <td class="px-2 py-1 text-center">{{ item.location || 'N/A' }}</td>
                             <td class="px-2 py-1 text-center">{{ item.purchase_date || 'N/A' }}</td>
-                            <td class="px-2 py-1 text-center">{{ item.value || 'N/A' }}</td>
+                            <td class="px-2 py-1 text-center">{{ item.unit_qty || 'N/A' }}</td>
                             <td class="px-2 py-1 text-center">{{ item.condition || 'N/A' }}</td>
                             <td class="px-2 py-1 text-center">{{ item.assigned_to || 'Unassigned' }}</td>
+                            <td class="px-2 py-1 text-center">{{ item.return_date || 'N/A' }}</td>
                             <td class="px-2 py-1 text-center">
                                 <span
                                     :class="{

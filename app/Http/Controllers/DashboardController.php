@@ -43,42 +43,43 @@ class DashboardController extends Controller
             ];
         }
 
-        $departments = ['PMD', 'Finance', 'Admin', 'Legal', 'CDD', 'SMD', 'LPDD', 'Enforcement', 'MSD', 'Technical'];
-try {
-    $assignedPerDepartment = DB::table('assets')
-        ->join('employees', 'assets.assigned', '=', 'employees.id')
-        ->join('org_units', 'employees.org_unit_id', '=', 'org_units.org_code')
-        ->select('org_units.name as department', DB::raw('COUNT(*) as value'))
-        ->whereIn('org_units.name', $departments)
-        ->groupBy('org_units.name')
-        ->get()
-        ->mapWithKeys(function ($item) use ($departments) {
-            return [$item->department => ['name' => $item->department, 'value' => (int)$item->value]];
-        })
-        ->toArray();
+        // Fetch assets by location
+        try {
+            $assetsByLocation = DB::table('assets')
+                ->select('location', DB::raw('SUM(unit_qty) as value'))
+                ->groupBy('location')
+                ->get()
+                ->mapWithKeys(function ($item) {
+                    return [$item->location => ['name' => $item->location, 'value' => (int)$item->value]];
+                })
+                ->toArray();
 
-    // Ensure all departments are included, even with zero assets
-    $assignedPerDepartment = array_merge(
-        array_fill_keys(
-            array_map(fn($dept) => $dept, $departments),
-            ['name' => '', 'value' => 0]
-        ),
-        $assignedPerDepartment
-    );
-    foreach ($assignedPerDepartment as $key => &$dept) {
-        if (is_array($dept) && empty($dept['name'])) {
-            $dept['name'] = $key;
+            // Ensure all locations have valid data
+            $assetsByLocation = array_values($assetsByLocation);
+
+            Log::info('Assets by Location', ['data' => $assetsByLocation]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching assets by location: ' . $e->getMessage());
+            $assetsByLocation = [];
         }
-    }
-    $assignedPerDepartment = array_values($assignedPerDepartment);
 
-    Log::info('Assigned Assets per Department', ['data' => $assignedPerDepartment]);
-} catch (\Exception $e) {
-    Log::error('Error fetching assigned assets per department: ' . $e->getMessage());
-    $assignedPerDepartment = array_map(function ($dept) {
-        return ['name' => $dept, 'value' => 0];
-    }, $departments);
-}
+        // Fetch assigned assets older than 5 years and status not 'check'
+        $fiveYearsAgo = Carbon::now()->subYears(5)->toDateString();
+        $assignedAssets = DB::table('assets')
+            ->select('assigned', 'assigned_date')
+            ->whereNotNull('assigned')
+            ->whereNotNull('assigned_date')
+            ->where('assigned_date', '<=', $fiveYearsAgo)
+            ->where('status', '!=', 'check')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'name' => $item->assigned,
+                    'assigned_date' => Carbon::parse($item->assigned_date)->format('m-d-Y'),
+                    'status' => 'Open', // Assuming 'Open' for assets meeting the criteria
+                ];
+            })
+            ->toArray();
 
         return Inertia::render('Dashboard', [
             'dashboardData' => [
@@ -86,7 +87,7 @@ try {
                 'users' => $userCount,
                 'assignedAssets' => Inventory::whereNotNull('assigned')->count(),
                 'assets' => $inventoryCount,
-                'assignedPerDepartment' => $assignedPerDepartment,
+                'assetsByLocation' => $assetsByLocation,
                 'purchasedAssets' => [
                     ['month' => 'Jan', 'count' => 10],
                     ['month' => 'Feb', 'count' => 15],
@@ -99,6 +100,7 @@ try {
                 'daysInMonth' => $daysInMonth,
                 'selectedYear' => (string)$currentYear,
                 'selectedMonth' => sprintf('%02d', $currentMonth),
+                'assignedAssetsTable' => $assignedAssets, // Add new data for the table
             ],
         ]);
     }
