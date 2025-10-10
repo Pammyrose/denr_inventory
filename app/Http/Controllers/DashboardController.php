@@ -26,7 +26,7 @@ class DashboardController extends Controller
         $daysInMonth = $monthStart->daysInMonth;
 
         $assetsByDay = DB::table('assets')
-            ->selectRaw('COUNT(*) as quantity, DATE(purchase_date) as date')
+            ->selectRaw('SUM(unit_qty) as quantity, DATE(purchase_date) as date')
             ->whereBetween('purchase_date', [$monthStart, $monthEnd])
             ->groupBy('date')
             ->orderBy('date', 'asc')
