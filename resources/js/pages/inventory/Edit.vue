@@ -244,6 +244,61 @@ const submit = () => {
                     </select>
                     <span v-if="errors.condition" class="text-red-600 text-sm">{{ errors.condition }}</span>
                 </div>
+                                <div>
+                    <Label for="property_no">Property Number</Label>
+                    <Input
+                        id="property_no"
+                        v-model="form.property_no"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <span v-if="errors.property_no" class="text-red-600 text-sm">{{ errors.property_no }}</span>
+                </div>
+                <div>
+                    <Label for="serial_no">Serial Number</Label>
+                    <Input
+                        id="serial_no"
+                        v-model="form.serial_no"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <span v-if="errors.serial_no" class="text-red-600 text-sm">{{ errors.serial_no }}</span>
+                </div>
+                <div>
+                    <Label for="serviceable">Serviceable</Label>
+                    <Input
+                        id="serviceable"
+                        v-model="form.serviceable"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <span v-if="errors.serviceable" class="text-red-600 text-sm">{{ errors.serviceable }}</span>
+                </div>
+                                <div>
+                    <Label for="unserviceable">Unserviceable</Label>
+                    <Input
+                        id="unserviceable"
+                        v-model="form.unserviceable"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <span v-if="errors.unserviceable" class="text-red-600 text-sm">{{ errors.unserviceable }}</span>
+                </div>
+                <div>
+                    <Label for="coa_representative">COA Representative</Label>
+                    <Input
+                        id="coa_representative"
+                        v-model="form.coa_representative"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <span v-if="errors.coa_representative" class="text-red-600 text-sm">{{ errors.coa_representative }}</span>
+                </div>
+                <div>
+                    <Label for="coa_date">COA Date</Label>
+                    <Input
+                        id="coa_date"
+                        type="date"
+                        v-model="form.coa_date"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <span v-if="errors.coa_date" class="text-red-600 text-sm">{{ errors.coa_date }}</span>
+                </div>
             </div>
 
             <div class="grid grid-cols-3 gap-4 text-black">
@@ -261,6 +316,26 @@ const submit = () => {
                     </select>
                     <span v-if="errors.assigned_to" class="text-red-600 text-sm">{{ errors.assigned_to }}</span>
                 </div>
+                                                <div>
+                    <Label for="assigned_date">Assigned Date</Label>
+                    <Input
+                        id="assigned_date"
+                        type="date"
+                        v-model="form.assigned_date"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <span v-if="errors.assigned_date" class="text-red-600 text-sm">{{ errors.assigned_date }}</span>
+                </div>
+                                                                <div>
+                    <Label for="unit_qty">Unit / Qty</Label>
+                    <Input
+                        id="unit_qty"
+                        type="number"
+                        v-model="form.unit_qty"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <span v-if="errors.assigned_date" class="text-red-600 text-sm">{{ errors.unit_qty }}</span>
+                </div>
                 <div>
                     <Label for="status">Status</Label>
                     <select
@@ -276,20 +351,7 @@ const submit = () => {
                     </select>
                     <span v-if="errors.status" class="text-red-600 text-sm">{{ errors.status }}</span>
                 </div>
-                <div>
-                    <Label for="return_date">Return Date</Label>
-                    <Input
-                        id="return_date"
-                        v-model="form.return_date"
-                        type="date"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <span v-if="errors.return_date" class="text-red-600 text-sm">{{ errors.return_date }}</span>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-3 gap-4 text-black">
-                <div>
+                                <div>
                     <Label for="image">Image</Label>
                     <Input
                         id="image"
@@ -307,7 +369,19 @@ const submit = () => {
                         style="max-width: 200px;"
                     />
                 </div>
+                <div>
+                    <Label for="return_date">Return Date</Label>
+                    <Input
+                        id="return_date"
+                        v-model="form.return_date"
+                        type="date"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <span v-if="errors.return_date" class="text-red-600 text-sm">{{ errors.return_date }}</span>
+                </div>
             </div>
+
+         
 
             <div class="flex justify-end gap-3">
                 <Button

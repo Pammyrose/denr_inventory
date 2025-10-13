@@ -350,8 +350,8 @@ const chartOptionsLocations = computed(() => ({
         </div>
       </div>
 
-      <!-- Table Section -->
-      <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+<!-- Table Section -->
+<div class="relative overflow-x-auto shadow-md sm:rounded-lg">
   <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
     <thead class="text-xs text-white uppercase bg-gradient-to-b from-green-300 to-green-600">
       <tr>
@@ -394,8 +394,7 @@ const chartOptionsLocations = computed(() => ({
           <a
             href="#"
             class="font-medium text-blue-600 dark:text-blue-500 hover:underline"
-            >{{ asset.status }}</a
-          >
+          >{{ asset.status }}</a>
         </td>
       </tr>
       <tr v-if="dashboardData.assignedAssetsTable.length === 0">
@@ -409,6 +408,7 @@ const chartOptionsLocations = computed(() => ({
     </tbody>
   </table>
 </div>
+
     </div>
   </AppLayout>
 </template>

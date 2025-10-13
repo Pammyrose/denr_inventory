@@ -63,23 +63,31 @@ class DashboardController extends Controller
             $assetsByLocation = [];
         }
 
-        // Fetch assigned assets older than 5 years and status not 'check'
-        $fiveYearsAgo = Carbon::now()->subYears(5)->toDateString();
+// Fetch assigned assets older than 5 years and status 'check' with full name
+        $fiveYearsAgo = Carbon::now()->subYears(5)->endOfYear()->toDateString();
         $assignedAssets = DB::table('assets')
-            ->select('assigned', 'assigned_date')
-            ->whereNotNull('assigned')
-            ->whereNotNull('assigned_date')
-            ->where('assigned_date', '<=', $fiveYearsAgo)
-            ->where('status', '!=', 'check')
+            ->join('employees', 'assets.assigned', '=', 'employees.id') // Assuming assigned is an employee ID
+            ->select(
+                DB::raw('CONCAT(employees.first_name, " ", COALESCE(employees.middle_name, ""), " ", employees.last_name) as name'),
+                'assets.assigned_date',
+                'assets.status'
+            )
+            ->whereNotNull('assets.assigned')
+            ->whereNotNull('assets.assigned_date')
+            ->where('assets.assigned_date', '<=', $fiveYearsAgo)
+            ->whereRaw('LOWER(assets.status) = ?', ['check'])
             ->get()
             ->map(function ($item) {
                 return [
-                    'name' => $item->assigned,
+                    'name' => $item->name,
                     'assigned_date' => Carbon::parse($item->assigned_date)->format('m-d-Y'),
-                    'status' => 'Open', // Assuming 'Open' for assets meeting the criteria
+                    'status' => $item->status,
                 ];
             })
             ->toArray();
+
+        // Log the assigned assets for debugging
+        Log::info('Assigned Assets', ['data' => $assignedAssets]);
 
         return Inertia::render('Dashboard', [
             'dashboardData' => [
@@ -100,7 +108,7 @@ class DashboardController extends Controller
                 'daysInMonth' => $daysInMonth,
                 'selectedYear' => (string)$currentYear,
                 'selectedMonth' => sprintf('%02d', $currentMonth),
-                'assignedAssetsTable' => $assignedAssets, // Add new data for the table
+                'assignedAssetsTable' => $assignedAssets,
             ],
         ]);
     }

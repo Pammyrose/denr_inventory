@@ -280,7 +280,7 @@ const addAssignment = () => {
                     <span v-if="errors.sex" class="text-red-600 text-sm">{{ errors.sex }}</span>
                 </div>
                 <div class="relative">
-                    <Label for="div_sec_unit">Division Section Unit</Label>
+                    <Label for="div_sec_unit">Div Sec Unit</Label>
                     <select id="div_sec_unit" v-model="form.div_sec_unit" class="w-full p-2 border rounded" :key="orgUnitsLocal.length">
                         <option value="" disabled>Select Division Section Unit</option>
                         <option v-for="unit in orgUnitsLocal" :key="unit.value" :value="unit.value">
