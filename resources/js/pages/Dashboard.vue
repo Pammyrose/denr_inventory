@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { Line, Pie } from 'vue-chartjs';
 import { Chart as ChartJS, Title, Tooltip, Legend, LineElement, PointElement, CategoryScale, LinearScale, ArcElement } from 'chart.js';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link, usePage, router } from '@inertiajs/vue3';
 import { format } from 'date-fns';
 import EmployeeIndex from '@/components/employee/Index.vue';
 
@@ -24,14 +24,78 @@ const dashboardData = props.dashboardData as {
   daysInMonth: number;
   selectedYear: string;
   selectedMonth: string;
+  assignedAssetsTable: { id: number; name: string; assigned_date: string; status: string }[];
 };
 
-const breadcrumbs: BreadcrumbItem[] = [
-  {
-    title: 'Dashboard',
-    href: '/dashboard',
-  },
-];
+// State for dropdown visibility and position
+const activeDropdown = ref<number | null>(null);
+const dropdownPosition = ref<{ top: number; left: number }>({ top: 0, left: 0 });
+
+// Available status options
+const statusOptions = ['Checked', 'Pending', 'In Use', 'Returned'];
+
+// Toggle dropdown for a specific asset and position it
+const toggleDropdown = (assetId: number, event: MouseEvent) => {
+  if (activeDropdown.value === assetId) {
+    activeDropdown.value = null; // Close if already open
+  } else {
+    activeDropdown.value = assetId;
+    // Calculate position based on the clicked button
+    const button = event.currentTarget as HTMLElement;
+    const rect = button.getBoundingClientRect();
+    dropdownPosition.value = {
+      top: rect.bottom + window.scrollY + 2, // Position below the button
+      left: rect.left + window.scrollX, // Align with the button's left edge
+    };
+  }
+};
+
+// Handle status change
+const changeStatus = (assetId: number, newStatus: string) => {
+  router.patch(
+    route('inventory.update', assetId),
+    { status: newStatus },
+    {
+      preserveState: true,
+      preserveScroll: true,
+      onSuccess: (page) => {
+        // Update local state to reflect new status
+        const assetIndex = dashboardData.assignedAssetsTable.findIndex(asset => asset.id === assetId);
+        if (assetIndex !== -1) {
+          // Check if status is still valid for display (not "check" per previous filter)
+          if (newStatus.toLowerCase() !== 'check') {
+            dashboardData.assignedAssetsTable[assetIndex].status = newStatus;
+          } else {
+            // Remove from table if status is "check" to respect filter
+            dashboardData.assignedAssetsTable.splice(assetIndex, 1);
+          }
+        }
+        activeDropdown.value = null; // Close dropdown
+      },
+      onError: (errors) => {
+        console.error('Failed to update status:', errors);
+        activeDropdown.value = null; // Close dropdown on error
+      },
+    }
+  );
+};
+
+// Close dropdown when clicking outside
+const handleClickOutside = (event: MouseEvent) => {
+  const dropdown = document.querySelector('.dropdown-menu');
+  const target = event.target as HTMLElement;
+  if (dropdown && !dropdown.contains(target) && !target.closest('.status-button')) {
+    activeDropdown.value = null;
+  }
+};
+
+// Add and remove click-outside listener
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
 
 // Format month labels (e.g., "Jan", "Feb")
 const formatMonthLabel = (month: string) => {
@@ -350,65 +414,84 @@ const chartOptionsLocations = computed(() => ({
         </div>
       </div>
 
-<!-- Table Section -->
-<div class="relative overflow-x-auto shadow-md sm:rounded-lg">
-  <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-    <thead class="text-xs text-white uppercase bg-gradient-to-b from-green-300 to-green-600">
-      <tr>
-        <th scope="col" class="px-6 py-3">Name</th>
-        <th scope="col" class="px-6 py-3">
-          <div class="flex items-center">
-            Assigned Date
-            <a href="#">
-              <svg
-                class="w-3 h-3 ms-1.5"
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="currentColor"
-                viewBox="0 0 24 24"
+      <!-- Table Section -->
+      <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+        <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+          <thead class="text-xs text-white uppercase bg-gradient-to-b from-green-300 to-green-600">
+            <tr>
+              <th scope="col" class="px-6 py-3">Name</th>
+              <th scope="col" class="px-6 py-3">
+                <div class="flex items-center">
+                  Assigned Date
+                  <a href="#">
+                    <svg
+                      class="w-3 h-3 ms-1.5"
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"
+                      />
+                    </svg>
+                  </a>
+                </div>
+              </th>
+              <th scope="col" class="px-6 py-3">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="(asset, index) in dashboardData.assignedAssetsTable"
+              :key="index"
+              class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200"
+            >
+              <th
+                scope="row"
+                class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
               >
-                <path
-                  d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"
-                />
-              </svg>
-            </a>
-          </div>
-        </th>
-        <th scope="col" class="px-6 py-3">Status</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr
-        v-for="(asset, index) in dashboardData.assignedAssetsTable"
-        :key="index"
-        class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200"
-      >
-        <th
-          scope="row"
-          class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-        >
-          {{ asset.name }}
-        </th>
-        <td class="px-6 py-4">{{ asset.assigned_date }}</td>
-        <td class="px-6 py-4">
-          <a
-            href="#"
-            class="font-medium text-blue-600 dark:text-blue-500 hover:underline"
-          >{{ asset.status }}</a>
-        </td>
-      </tr>
-      <tr v-if="dashboardData.assignedAssetsTable.length === 0">
-        <td
-          colspan="3"
-          class="px-6 py-4 text-center text-gray-500 dark:text-gray-400"
-        >
-          No assets meet the criteria.
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+                {{ asset.name }}
+              </th>
+              <td class="px-6 py-4">{{ asset.assigned_date }}</td>
+              <td class="px-6 py-4 relative">
+                <button
+                  @click="toggleDropdown(asset.id, $event)"
+                  class="status-button font-medium text-blue-600 dark:text-blue-500 hover:underline"
+                >
+                  {{ asset.status }}
+                </button>
+              </td>
+            </tr>
+            <tr v-if="dashboardData.assignedAssetsTable.length === 0">
+              <td
+                colspan="3"
+                class="px-6 py-4 text-center text-gray-500 dark:text-gray-400"
+              >
+                No assets meet the criteria.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
+      <!-- Dropdown Portal -->
+      <div
+        v-if="activeDropdown !== null"
+        class="dropdown-menu fixed z-50 w-32 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg"
+        :style="{ top: `${dropdownPosition.top}px`, left: `${dropdownPosition.left}px` }"
+      >
+        <ul class="py-1 text-sm text-gray-700 dark:text-gray-200">
+          <li
+            v-for="status in statusOptions"
+            :key="status"
+            @click="changeStatus(activeDropdown!, status)"
+            class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white cursor-pointer"
+          >
+            {{ status }}
+          </li>
+        </ul>
+      </div>
     </div>
   </AppLayout>
 </template>

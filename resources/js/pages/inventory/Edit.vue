@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, onMounted, computed } from 'vue';
 import { useForm, router } from '@inertiajs/vue3';
 import Button from '@/components/ui/button/Button.vue';
 import Input from '@/components/ui/input/Input.vue';
@@ -17,6 +17,14 @@ interface InventoryItem {
     status: string;
     image: string | null;
     return_date: string | null;
+    property_no: string;
+    serial_no: string;
+    serviceable: string;
+    unserviceable: string;
+    coa_representative: string;
+    coa_date: string;
+    assigned_date: string;
+    unit_qty: number;
 }
 
 interface Employee {
@@ -29,24 +37,60 @@ const props = defineProps<{
     employees: Employee[];
 }>();
 
-// Debug props
-console.log('Edit.vue props:', {
-    item: props.item,
-    assigned_to: props.item.assigned_to,
-    employees: props.employees
+// Valid condition values
+const validConditions = ['New', 'Good', 'Fair', 'Poor'];
+
+// Check for missing or invalid required fields in props.item
+const requiredFields = [
+    'name', 'category', 'location', 'purchase_date', 'value', 'condition', 'status',
+    'property_no', 'serial_no', 'serviceable', 'unserviceable', 'coa_representative',
+    'coa_date', 'assigned_date', 'unit_qty'
+];
+
+// Debug props on mount
+onMounted(() => {
+    const missingFields = requiredFields.filter(key => !props.item[key] && props.item[key] !== 0);
+    const isConditionValid = validConditions.includes(props.item.condition);
+    console.log('Edit.vue props on mount:', {
+        item: props.item,
+        assigned_to: props.item.assigned_to,
+        condition: props.item.condition,
+        isConditionValid,
+        employees: props.employees,
+        missingFields,
+        hasAllRequiredFields: missingFields.length === 0
+    });
+    if (missingFields.length > 0) {
+        console.warn('Warning: Missing required fields in props.item:', missingFields);
+        alertMessage.value = `Warning: Missing required data for fields: ${missingFields.join(', ')}.`;
+        alertType.value = 'error';
+    }
+    if (!isConditionValid) {
+        console.warn('Warning: Invalid condition value in props.item:', props.item.condition);
+        alertMessage.value = `Warning: Invalid condition value (${props.item.condition}). Must be one of: ${validConditions.join(', ')}.`;
+        alertType.value = 'error';
+    }
 });
 
 const form = useForm({
-    name: props.item.name || '',
-    category: props.item.category || '',
-    location: props.item.location || '',
-    purchase_date: props.item.purchase_date || '',
-    value: props.item.value ? String(props.item.value) : '',
-    condition: props.item.condition || '',
+    name: props.item.name || 'Unknown Item',
+    category: props.item.category || 'Uncategorized',
+    location: props.item.location || 'Unknown Location',
+    purchase_date: props.item.purchase_date || new Date().toISOString().split('T')[0],
+    value: props.item.value ? String(props.item.value) : '0',
+    condition: validConditions.includes(props.item.condition) ? props.item.condition : 'Good',
     assigned_to: props.item.assigned_to ? Number(props.item.assigned_to) : null,
-    status: props.item.status || '',
+    status: props.item.status || 'Good',
     return_date: props.item.return_date || '',
     image: null as File | null,
+    property_no: props.item.property_no || 'PROP000',
+    serial_no: props.item.serial_no || 'SER000',
+    serviceable: props.item.serviceable || 'Yes',
+    unserviceable: props.item.unserviceable || 'No',
+    coa_representative: props.item.coa_representative || 'Unknown',
+    coa_date: props.item.coa_date || new Date().toISOString().split('T')[0],
+    assigned_date: props.item.assigned_date || new Date().toISOString().split('T')[0],
+    unit_qty: props.item.unit_qty ? Number(props.item.unit_qty) : 1,
 });
 
 const errors = ref<{ [key: string]: string }>({});
@@ -69,66 +113,77 @@ const onImageChange = (event: Event) => {
             size: form.image.size,
             type: form.image.type
         });
+        console.log('Form condition after image change:', form.condition);
+        console.log('Form data after image change:', form.data());
     } else {
         form.image = null;
         imagePreview.value = props.item.image || null;
         console.log('Image cleared');
+        console.log('Form condition after image clear:', form.condition);
+        console.log('Form data after image clear:', form.data());
     }
 };
+
+// Debug condition changes
+const conditionValue = computed(() => form.condition);
+watch(conditionValue, (newValue) => {
+    console.log('Condition changed:', newValue);
+});
 
 // Watch form data for debugging
 watch(() => form.data(), (newData) => {
     console.log('Form data changed:', newData);
 });
 
-const validate = () => {
-    errors.value = {};
-    if (!form.name) errors.value.name = 'Name is required';
-    if (!form.category) errors.value.category = 'Category is required';
-    if (!form.location) errors.value.location = 'Location is required';
-    if (!form.purchase_date) errors.value.purchase_date = 'Purchase date is required';
-    if (!form.value || isNaN(parseFloat(form.value))) errors.value.value = 'Value must be a valid number';
-    if (parseFloat(form.value) < 0 || parseFloat(form.value) > 9999999.99) {
-        errors.value.value = 'Value must be between 0 and 9999999.99';
-    }
-    if (!form.condition) errors.value.condition = 'Condition is required';
-    if (!form.status) errors.value.status = 'Status is required';
-    if (form.assigned_to && !props.employees.some(emp => emp.id === form.assigned_to)) {
-        errors.value.assigned_to = 'Invalid employee selected';
-    }
-    if (form.return_date && !/^\d{4}-\d{2}-\d{2}$/.test(form.return_date)) {
-        errors.value.return_date = 'Return date must be a valid date';
-    }
-    if (form.image && !['image/jpeg', 'image/png', 'image/jpg', 'image/gif'].includes(form.image.type)) {
-        errors.value.image = 'Image must be a valid image file (jpeg, png, jpg, gif)';
-    }
-    if (form.image && form.image.size > 2048 * 1024) {
-        errors.value.image = 'Image size must not exceed 2MB';
-    }
-    console.log('Client-side validation errors:', errors.value);
-    return Object.keys(errors.value).length === 0;
-};
-
 const submit = () => {
     alertMessage.value = '';
     alertType.value = '';
     form.value = parseFloat(form.value) || 0;
-    if (!validate()) {
-        console.log('Client-side validation failed:', errors.value);
-        alertMessage.value = Object.values(errors.value).join('; ');
-        alertType.value = 'error';
-        return;
+    form.unit_qty = parseInt(form.unit_qty) || 1;
+
+    // Ensure condition is set
+    if (!form.condition || !validConditions.includes(form.condition)) {
+        console.warn('Condition is invalid before submission, setting to default:', form.condition);
+        form.condition = 'Good';
+    }
+
+    // Warn about missing props fields but allow submission
+    const missingFields = requiredFields.filter(key => !props.item[key] && props.item[key] !== 0);
+    if (missingFields.length > 0) {
+        console.warn('Submitting despite missing required fields:', missingFields);
     }
 
     const formData = form.data();
     console.log('Submitting form with data:', formData);
+    console.log('Condition value being submitted:', formData.condition);
+
+    // Explicitly create FormData for file uploads
+    const formDataPayload = new FormData();
+    Object.entries(formData).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+            formDataPayload.append(key, value instanceof File ? value : String(value));
+        }
+    });
+    // Ensure condition is always included
+    formDataPayload.append('condition', form.condition || 'Good');
+    // Add _method for PUT request
+    formDataPayload.append('_method', 'PUT');
+
+    console.log('FormData payload:', Array.from(formDataPayload.entries()));
 
     form.put(route('inventory.update', { id: props.item.id }), {
+        data: formDataPayload,
+        forceFormData: true,
         preserveState: true,
         preserveScroll: true,
-        forceFormData: true,
+        headers: {
+            'Content-Type': 'multipart/form-data',
+            'Accept': 'application/json',
+        },
         onBefore: () => {
             console.log('Starting form submission');
+            console.log('FormData payload for submission:', Array.from(formDataPayload.entries()));
+            console.log('Condition value in submission:', formDataPayload.get('condition'));
         },
         onSuccess: () => {
             console.log('Form submitted successfully');
@@ -138,7 +193,7 @@ const submit = () => {
                 form.reset();
                 alertMessage.value = '';
                 alertType.value = '';
-                imagePreview.value = null;
+                imagePreview.value = props.item.image || null;
                 router.visit(route('inventory.index'), {
                     method: 'get',
                     preserveState: false,
@@ -151,7 +206,7 @@ const submit = () => {
         onError: (serverErrors) => {
             console.log('Server validation errors:', serverErrors);
             errors.value = serverErrors;
-            alertMessage.value = serverErrors.image || serverErrors.general || Object.values(serverErrors).join('; ') || 'Failed to update inventory item';
+            alertMessage.value = 'Failed to update: ' + (serverErrors.condition || serverErrors.general || Object.values(serverErrors).join('; ') || 'Unknown error');
             alertType.value = 'error';
         },
         onFinish: () => {
@@ -236,7 +291,6 @@ const submit = () => {
                         v-model="form.condition"
                         class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
-                        <option value="" disabled>Select Condition</option>
                         <option value="New">New</option>
                         <option value="Good">Good</option>
                         <option value="Fair">Fair</option>
@@ -244,7 +298,7 @@ const submit = () => {
                     </select>
                     <span v-if="errors.condition" class="text-red-600 text-sm">{{ errors.condition }}</span>
                 </div>
-                                <div>
+                <div>
                     <Label for="property_no">Property Number</Label>
                     <Input
                         id="property_no"
@@ -271,7 +325,7 @@ const submit = () => {
                     />
                     <span v-if="errors.serviceable" class="text-red-600 text-sm">{{ errors.serviceable }}</span>
                 </div>
-                                <div>
+                <div>
                     <Label for="unserviceable">Unserviceable</Label>
                     <Input
                         id="unserviceable"
@@ -316,7 +370,7 @@ const submit = () => {
                     </select>
                     <span v-if="errors.assigned_to" class="text-red-600 text-sm">{{ errors.assigned_to }}</span>
                 </div>
-                                                <div>
+                <div>
                     <Label for="assigned_date">Assigned Date</Label>
                     <Input
                         id="assigned_date"
@@ -326,7 +380,7 @@ const submit = () => {
                     />
                     <span v-if="errors.assigned_date" class="text-red-600 text-sm">{{ errors.assigned_date }}</span>
                 </div>
-                                                                <div>
+                <div>
                     <Label for="unit_qty">Unit / Qty</Label>
                     <Input
                         id="unit_qty"
@@ -334,7 +388,7 @@ const submit = () => {
                         v-model="form.unit_qty"
                         class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
-                    <span v-if="errors.assigned_date" class="text-red-600 text-sm">{{ errors.unit_qty }}</span>
+                    <span v-if="errors.unit_qty" class="text-red-600 text-sm">{{ errors.unit_qty }}</span>
                 </div>
                 <div>
                     <Label for="status">Status</Label>
@@ -343,7 +397,6 @@ const submit = () => {
                         v-model="form.status"
                         class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
-                        <option value="" disabled>Select Status</option>
                         <option value="Good">Good</option>
                         <option value="Check">Check</option>
                         <option value="Repair">Repair</option>
@@ -351,24 +404,7 @@ const submit = () => {
                     </select>
                     <span v-if="errors.status" class="text-red-600 text-sm">{{ errors.status }}</span>
                 </div>
-                                <div>
-                    <Label for="image">Image</Label>
-                    <Input
-                        id="image"
-                        type="file"
-                        accept="image/*"
-                        @change="onImageChange"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <span v-if="errors.image" class="text-red-600 text-sm">{{ errors.image }}</span>
-                    <img
-                        v-if="imagePreview"
-                        :src="imagePreview"
-                        alt="Image Preview"
-                        class="mt-2 max-w-full h-auto"
-                        style="max-width: 200px;"
-                    />
-                </div>
+
                 <div>
                     <Label for="return_date">Return Date</Label>
                     <Input
@@ -380,8 +416,6 @@ const submit = () => {
                     <span v-if="errors.return_date" class="text-red-600 text-sm">{{ errors.return_date }}</span>
                 </div>
             </div>
-
-         
 
             <div class="flex justify-end gap-3">
                 <Button

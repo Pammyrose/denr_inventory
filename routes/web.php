@@ -56,6 +56,7 @@ Route::get('/profile', [ProfileController::class, 'show'])->name('profile'); // 
         Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
         Route::get('/inventory/{inventory}', [InventoryController::class, 'view'])->name('inventory.view');
         Route::post('/inventory/tags/print', [InventoryController::class, 'printTags'])->name('inventory.printTags');
+        Route::patch('inventory/{id}', [InventoryController::class, 'update'])->name('inventory.update');
         
       
    
