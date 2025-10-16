@@ -51,12 +51,12 @@ Route::get('/profile', [ProfileController::class, 'show'])->name('profile'); // 
 
         Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
         Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
-        Route::get('/inventory/{inventory}/edit', [InventoryController::class, 'edit'])->name('inventory.edit');
-        Route::put('/inventory/{inventory}', [InventoryController::class, 'update'])->name('inventory.update');
+Route::get('/inventory/{inventory}/edit', [InventoryController::class, 'edit'])->name('inventory.edit');
+Route::put('/inventory/{inventory}', [InventoryController::class, 'update'])->name('inventory.update');
         Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
         Route::get('/inventory/{inventory}', [InventoryController::class, 'view'])->name('inventory.view');
         Route::post('/inventory/tags/print', [InventoryController::class, 'printTags'])->name('inventory.printTags');
-        Route::patch('inventory/{id}', [InventoryController::class, 'update'])->name('inventory.update');
+        
         
       
    

@@ -7,8 +7,8 @@ use App\Models\Employee;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Inertia\Inertia;
 use Illuminate\Support\Facades\Validator;
+use Inertia\Inertia;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
 use Illuminate\Support\Facades\Storage;
@@ -95,9 +95,9 @@ class InventoryController extends Controller
             'location' => 'required|string|max:255',
             'purchase_date' => 'required|date',
             'value' => 'required|numeric|min:0|max:9999999.99',
-            'condition' => 'required|string|max:255',
+            'condition' => 'required|string|in:New,Good,Fair,Poor',
             'assigned' => 'nullable|integer|exists:employees,id',
-            'status' => 'required|string|max:255',
+            'status' => 'required|string|in:Good,Check,Repair,Upgrade',
             'property_no' => 'required|string|max:255',
             'serial_no' => 'required|string|max:255',
             'serviceable' => 'required|string|max:255',
@@ -109,7 +109,6 @@ class InventoryController extends Controller
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        // Handle image upload
         if ($request->hasFile('image')) {
             $file = $request->file('image');
             $path = $file->store('assets', 'public');
@@ -130,7 +129,6 @@ class InventoryController extends Controller
             Log::info('Image stored successfully', ['path' => $path, 'url' => Storage::url($path)]);
         }
 
-        // Generate asset_id
         $lastAsset = Inventory::orderBy('asset_id', 'desc')->first();
         $lastId = $lastAsset ? (int) str_replace('A', '', $lastAsset->asset_id) : 0;
         $newId = $lastId + 1;
@@ -140,7 +138,6 @@ class InventoryController extends Controller
 
         $asset = Inventory::create($data);
 
-        // Generate QR code linking to inventory.tag route
         $tagUrl = url()->route('inventory.tag', ['inventory' => $asset->asset_id], true);
         Log::info('QR Code URL', ['url' => $tagUrl]);
         $qrCodeBase64 = null;
@@ -221,125 +218,280 @@ class InventoryController extends Controller
         ]);
     }
 
-    public function edit(Inventory $inventory)
+   public function edit($asset_id)
     {
-        $employees = Employee::all()->map(function ($employee) {
-            $fullName = trim("{$employee->first_name} {$employee->middle_name} {$employee->last_name}");
-            return [
-                'id' => $employee->id,
-                'full_name' => $fullName ?: 'Unnamed Employee',
-            ];
-        })->toArray();
+        try {
+            $inventory = Inventory::where('asset_id', $asset_id)->firstOrFail();
+            $employees = Employee::all()->map(function ($employee) {
+                $fullName = trim(
+                    implode(' ', array_filter([
+                        $employee->first_name,
+                        $employee->middle_name,
+                        $employee->last_name,
+                    ], fn($value) => !is_null($value) && $value !== ''))
+                ) ?: 'Unnamed Employee';
+                return [
+                    'id' => $employee->id,
+                    'full_name' => $fullName,
+                ];
+            })->toArray();
 
-        Log::info('Employees for Edit Form', [
-            'employees' => $employees,
-            'asset_id' => $inventory->asset_id,
-            'assigned' => $inventory->assigned,
-            'image' => $inventory->image ? Storage::url($inventory->image) : null,
-        ]);
+            $assignedTo = $inventory->assigned ? Employee::find($inventory->assigned) : null;
+            $fullName = $assignedTo 
+                ? trim(
+                    implode(' ', array_filter([
+                        $assignedTo->first_name,
+                        $assignedTo->middle_name,
+                        $assignedTo->last_name,
+                    ], fn($value) => !is_null($value) && $value !== ''))
+                ) ?: 'Unnamed Employee'
+                : 'Unassigned';
 
-        return Inertia::render('inventory/Edit', [
-            'asset' => [
+            $item = [
                 'id' => $inventory->asset_id,
-                'name' => $inventory->name,
-                'category' => $inventory->category,
-                'location' => $inventory->location,
-                'purchase_date' => $inventory->purchase_date,
-                'value' => $inventory->value,
-                'condition' => $inventory->condition,
-                'assigned_to' => $inventory->assigned ? (int)$inventory->assigned : null,
-                'status' => $inventory->status,
-                'property_no' => $inventory->property_no,
-                'serial_no' => $inventory->serial_no,
-                'serviceable' => $inventory->serviceable,
-                'unserviceable' => $inventory->unserviceable,
-                'coa_representative' => $inventory->coa_representative,
-                'coa_date' => $inventory->coa_date,
-                'assigned_date' => $inventory->assigned_date,
-                'unit_qty' => $inventory->unit_qty,
-                'image' => $inventory->image ? Storage::url($inventory->image) : null,
-            ],
-            'employees' => $employees,
-        ]);
+                'name' => $inventory->name ?? 'Unknown Item',
+                'category' => $inventory->category ?? 'Uncategorized',
+                'location' => $inventory->location ?? 'Unknown Location',
+                'purchase_date' => $inventory->purchase_date ?? '',
+                'value' => (float) ($inventory->value ?? 0),
+                'condition' => $inventory->condition ?? 'New',
+                'property_no' => $inventory->property_no ?? '',
+                'serial_no' => $inventory->serial_no ?? '',
+                'serviceable' => (float) ($inventory->serviceable ?? 0),
+                'unserviceable' => (float) ($inventory->unserviceable ?? 0),
+                'coa_representative' => $inventory->coa_representative ?? '',
+                'coa_date' => $inventory->coa_date ?? '',
+                'assigned' => $inventory->assigned !== null ? (int)$inventory->assigned : null,
+                'assigned_to' => $inventory->assigned !== null ? (int)$inventory->assigned : null, // Alias for frontend
+                'full_name' => $fullName,
+                'assigned_date' => $inventory->assigned_date ?? '',
+                'unit_qty' => (int) ($inventory->unit_qty ?? 1),
+            ];
+
+            Log::info('InventoryController@edit: Inventory item and employees for edit form', [
+                'asset_id' => $asset_id,
+                'item' => $item,
+                'assigned' => $item['assigned'],
+                'assigned_to' => $item['assigned_to'],
+                'full_name' => $fullName,
+                'employees' => $employees,
+            ]);
+
+            return Inertia::render('inventory/Edit', [
+                'item' => $item,
+                'employees' => $employees,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('InventoryController@edit: Failed to fetch inventory item', [
+                'asset_id' => $asset_id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return Inertia::render('inventory/Edit', [
+                'item' => [
+                    'id' => $asset_id,
+                    'name' => 'Unknown Item',
+                    'category' => 'Uncategorized',
+                    'location' => 'Unknown Location',
+                    'purchase_date' => '',
+                    'value' => 0,
+                    'condition' => 'New',
+                    'property_no' => '',
+                    'serial_no' => '',
+                    'serviceable' => 0,
+                    'unserviceable' => 0,
+                    'coa_representative' => '',
+                    'coa_date' => '',
+                    'assigned' => null,
+                    'assigned_to' => null, // Alias for frontend
+                    'full_name' => 'Unassigned',
+                    'assigned_date' => '',
+                    'unit_qty' => 1,
+                ],
+                'employees' => Employee::all()->map(function ($employee) {
+                    $fullName = trim(
+                        implode(' ', array_filter([
+                            $employee->first_name,
+                            $employee->middle_name,
+                            $employee->last_name,
+                        ], fn($value) => !is_null($value) && $value !== ''))
+                    ) ?: 'Unnamed Employee';
+                    return [
+                        'id' => $employee->id,
+                        'full_name' => $fullName,
+                    ];
+                })->toArray(),
+            ]);
+        }
     }
 
-    public function update(Request $request, Inventory $inventory)
+    public function update(Request $request, $asset_id)
     {
-        Log::info('InventoryController@update: Incoming request data: ' . json_encode($request->all()));
-
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'category' => 'required|string|max:255',
             'location' => 'required|string|max:255',
             'purchase_date' => 'required|date',
             'value' => 'required|numeric|min:0|max:9999999.99',
-            'condition' => 'required|string|max:255',
-            'assigned_to' => 'nullable|integer|exists:employees,id',
-            'status' => 'required|string|max:255',
+            'condition' => 'required|string|in:New,Good,Fair,Poor',
+            'assigned' => 'nullable|integer|exists:employees,id',
             'property_no' => 'required|string|max:255',
             'serial_no' => 'required|string|max:255',
-            'serviceable' => 'required|string|max:255',
-            'unserviceable' => 'required|string|max:255',
+            'serviceable' => 'required|numeric|min:0|max:9999999.99',
+            'unserviceable' => 'required|numeric|min:0|max:9999999.99',
             'coa_representative' => 'required|string|max:255',
             'coa_date' => 'required|date',
             'assigned_date' => 'required|date',
-            'unit_qty' => 'required|numeric|min:0|max:9999999.99',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'unit_qty' => 'required|integer|min:0|max:9999999',
         ]);
 
         if ($validator->fails()) {
-            Log::warning('Validation failed in InventoryController@update: ' . json_encode($validator->errors()));
-            return back()->withErrors($validator)->withInput();
+            Log::warning('InventoryController@update: Validation failed', [
+                'asset_id' => $asset_id,
+                'errors' => $validator->errors()->toArray(),
+                'request_data' => $request->all(),
+            ]);
+
+            $assignedTo = $request->input('assigned') ? Employee::find($request->input('assigned')) : null;
+            $fullName = $assignedTo 
+                ? trim(
+                    implode(' ', array_filter([
+                        $assignedTo->first_name,
+                        $assignedTo->middle_name,
+                        $assignedTo->last_name,
+                    ], fn($value) => !is_null($value) && $value !== ''))
+                ) ?: 'Unnamed Employee'
+                : 'Unassigned';
+
+            return Inertia::render('inventory/Edit', [
+                'item' => [
+                    'id' => $asset_id,
+                    'name' => $request->input('name', 'Unknown Item'),
+                    'category' => $request->input('category', 'Uncategorized'),
+                    'location' => $request->input('location', 'Unknown Location'),
+                    'purchase_date' => $request->input('purchase_date', ''),
+                    'value' => (float) $request->input('value', 0),
+                    'condition' => $request->input('condition', 'New'),
+                    'property_no' => $request->input('property_no', ''),
+                    'serial_no' => $request->input('serial_no', ''),
+                    'serviceable' => (float) $request->input('serviceable', 0),
+                    'unserviceable' => (float) $request->input('unserviceable', 0),
+                    'coa_representative' => $request->input('coa_representative', ''),
+                    'coa_date' => $request->input('coa_date', ''),
+                    'assigned' => $request->input('assigned', null),
+                    'assigned_to' => $request->input('assigned', null), // Alias for frontend
+                    'full_name' => $fullName,
+                    'assigned_date' => $request->input('assigned_date', ''),
+                    'unit_qty' => (int) $request->input('unit_qty', 1),
+                ],
+                'employees' => Employee::all()->map(function ($employee) {
+                    $fullName = trim(
+                        implode(' ', array_filter([
+                            $employee->first_name,
+                            $employee->middle_name,
+                            $employee->last_name,
+                        ], fn($value) => !is_null($value) && $value !== ''))
+                    ) ?: 'Unnamed Employee';
+                    return [
+                        'id' => $employee->id,
+                        'full_name' => $fullName,
+                    ];
+                })->toArray(),
+                'errors' => $validator->errors()->toArray(),
+            ]);
         }
 
         try {
             DB::beginTransaction();
 
-            $inventoryData = [
-                'name' => $request->name,
-                'category' => $request->category,
-                'location' => $request->location,
-                'purchase_date' => $request->purchase_date,
-                'value' => $request->value,
-                'condition' => $request->condition,
-                'assigned' => $request->assigned_to,
-                'status' => $request->status,
-                'property_no' => $request->property_no,
-                'serial_no' => $request->serial_no,
-                'serviceable' => $request->serviceable,
-                'unserviceable' => $request->unserviceable,
-                'coa_representative' => $request->coa_representative,
-                'coa_date' => $request->coa_date,
-                'unit_qty' => $request->unit_qty,
-                'assigned_date' => $request->assigned_date,
-            ];
-
-            // Handle image upload
-            if ($request->hasFile('image')) {
-                // Delete old image if exists
-                if ($inventory->image) {
-                    Storage::disk('public')->delete($inventory->image);
-                }
-                $file = $request->file('image');
-                $path = $file->store('assets', 'public');
-                if (!Storage::disk('public')->exists($path)) {
-                    Log::error('Image storage failed during update', ['path' => $path]);
-                    throw new \Exception('Failed to store image');
-                }
-                $inventoryData['image'] = $path;
-                Log::info('Image updated successfully', ['path' => $path, 'url' => Storage::url($path)]);
+            $inventory = Inventory::where('asset_id', $asset_id)->firstOrFail();
+            $data = $request->all();
+            // Map assigned_to to assigned if present
+            if ($request->has('assigned_to')) {
+                $data['assigned'] = $request->input('assigned_to') !== '' ? (int)$request->input('assigned_to') : null;
+                unset($data['assigned_to']);
             }
 
-            $inventory->update($inventoryData);
-            Log::info('InventoryController@update: Asset updated: ' . json_encode($inventory->toArray()));
+            $inventory->update([
+                'name' => $data['name'],
+                'category' => $data['category'],
+                'location' => $data['location'],
+                'purchase_date' => $data['purchase_date'],
+                'value' => $data['value'],
+                'condition' => $data['condition'],
+                'property_no' => $data['property_no'],
+                'serial_no' => $data['serial_no'],
+                'serviceable' => $data['serviceable'],
+                'unserviceable' => $data['unserviceable'],
+                'coa_representative' => $data['coa_representative'],
+                'coa_date' => $data['coa_date'],
+                'assigned' => $data['assigned'],
+                'assigned_date' => $data['assigned_date'],
+                'unit_qty' => $data['unit_qty'],
+            ]);
 
             DB::commit();
 
-            return redirect()->route('inventory.index')->with('message', 'Asset updated successfully');
+            Log::info('InventoryController@update: Inventory item updated', [
+                'asset_id' => $asset_id,
+                'data' => $data,
+            ]);
+
+            return redirect()->route('inventory.index')->with('message', 'Inventory item updated successfully');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error in InventoryController@update: ' . $e->getMessage() . ' | Trace: ' . $e->getTraceAsString() . ' | Data: ' . json_encode($request->all()));
-            return back()->withErrors(['general' => 'Failed to update asset: ' . $e->getMessage()])->withInput();
+            Log::error('InventoryController@update: Failed to update inventory item', [
+                'asset_id' => $asset_id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all(),
+            ]);
+            $assignedTo = $request->input('assigned') ? Employee::find($request->input('assigned')) : null;
+            $fullName = $assignedTo 
+                ? trim(
+                    implode(' ', array_filter([
+                        $assignedTo->first_name,
+                        $assignedTo->middle_name,
+                        $assignedTo->last_name,
+                    ], fn($value) => !is_null($value) && $value !== ''))
+                ) ?: 'Unnamed Employee'
+                : 'Unassigned';
+            return Inertia::render('inventory/Edit', [
+                'item' => [
+                    'id' => $asset_id,
+                    'name' => $request->input('name', 'Unknown Item'),
+                    'category' => $request->input('category', 'Uncategorized'),
+                    'location' => $request->input('location', 'Unknown Location'),
+                    'purchase_date' => $request->input('purchase_date', ''),
+                    'value' => (float) $request->input('value', 0),
+                    'condition' => $request->input('condition', 'New'),
+                    'property_no' => $request->input('property_no', ''),
+                    'serial_no' => $request->input('serial_no', ''),
+                    'serviceable' => (float) $request->input('serviceable', 0),
+                    'unserviceable' => (float) $request->input('unserviceable', 0),
+                    'coa_representative' => $request->input('coa_representative', ''),
+                    'coa_date' => $request->input('coa_date', ''),
+                    'assigned' => $request->input('assigned', null),
+                    'assigned_to' => $request->input('assigned', null), // Alias for frontend
+                    'full_name' => $fullName,
+                    'assigned_date' => $request->input('assigned_date', ''),
+                    'unit_qty' => (int) $request->input('unit_qty', 1),
+                ],
+                'employees' => Employee::all()->map(function ($employee) {
+                    $fullName = trim(
+                        implode(' ', array_filter([
+                            $employee->first_name,
+                            $employee->middle_name,
+                            $employee->last_name,
+                        ], fn($value) => !is_null($value) && $value !== ''))
+                    ) ?: 'Unnamed Employee';
+                    return [
+                        'id' => $employee->id,
+                        'full_name' => $fullName,
+                    ];
+                })->toArray(),
+                'errors' => ['general' => 'Failed to update inventory item: ' . $e->getMessage()],
+            ]);
         }
     }
 
@@ -348,7 +500,6 @@ class InventoryController extends Controller
         try {
             DB::beginTransaction();
 
-            // Delete associated image
             if ($inventory->image) {
                 Storage::disk('public')->delete($inventory->image);
             }
@@ -522,6 +673,4 @@ class InventoryController extends Controller
             'error' => null
         ]);
     }
-
-    
 }
