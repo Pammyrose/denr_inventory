@@ -219,7 +219,7 @@ class InventoryController extends Controller
         ]);
     }
 
-   public function edit($asset_id)
+    public function edit($asset_id)
     {
         try {
             $inventory = Inventory::where('asset_id', $asset_id)->firstOrFail();
@@ -269,6 +269,7 @@ class InventoryController extends Controller
                 'unit_qty' => (int) ($inventory->unit_qty ?? 1),
                 'status' => $inventory->status ?? 'Good',
                 'return_date' => $inventory->return_date ?? '',
+                'image' => $inventory->image ? Storage::url($inventory->image) : null,
             ];
 
             Log::info('InventoryController@edit: Inventory item and employees for edit form', [
@@ -312,6 +313,7 @@ class InventoryController extends Controller
                     'unit_qty' => 1,
                     'status' => 'Good',
                     'return_date' => '',
+                    'image' => null,
                 ],
                 'employees' => Employee::all()->map(function ($employee) {
                     $fullName = trim(
@@ -350,6 +352,7 @@ class InventoryController extends Controller
             'unit_qty' => 'required|integer|min:0|max:9999999',
             'status' => 'required|string|in:Good,Check,Repair,Upgrade',
             'return_date' => 'nullable|date',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -392,6 +395,7 @@ class InventoryController extends Controller
                     'unit_qty' => (int) $request->input('unit_qty', 1),
                     'status' => $request->input('status', 'Good'),
                     'return_date' => $request->input('return_date', ''),
+                    'image' => $request->input('image', null),
                 ],
                 'employees' => Employee::all()->map(function ($employee) {
                     $fullName = trim(
@@ -420,6 +424,60 @@ class InventoryController extends Controller
                 unset($data['assigned_to']);
             }
 
+            if ($request->hasFile('image')) {
+                // Delete old image if exists
+                if ($inventory->image) {
+                    Storage::disk('public')->delete($inventory->image);
+                }
+                $file = $request->file('image');
+                $path = $file->store('assets', 'public');
+                if (!Storage::disk('public')->exists($path)) {
+                    Log::error('Image storage failed', ['path' => $path]);
+                    DB::rollBack();
+                    return Inertia::render('inventory/Edit', [
+                        'item' => [
+                            'id' => $asset_id,
+                            'name' => $request->input('name', 'Unknown Item'),
+                            'category' => $request->input('category', 'Uncategorized'),
+                            'location' => $request->input('location', 'Unknown Location'),
+                            'purchase_date' => $request->input('purchase_date', ''),
+                            'value' => (float) $request->input('value', 0),
+                            'condition' => $request->input('condition', 'New'),
+                            'property_no' => $request->input('property_no', ''),
+                            'serial_no' => $request->input('serial_no', ''),
+                            'serviceable' => (float) $request->input('serviceable', 0),
+                            'unserviceable' => (float) $request->input('unserviceable', 0),
+                            'coa_representative' => $request->input('coa_representative', ''),
+                            'coa_date' => $request->input('coa_date', ''),
+                            'assigned' => $request->input('assigned', null),
+                            'assigned_to' => $request->input('assigned', null),
+                            'full_name' => $fullName,
+                            'assigned_date' => $request->input('assigned_date', ''),
+                            'unit_qty' => (int) $request->input('unit_qty', 1),
+                            'status' => $request->input('status', 'Good'),
+                            'return_date' => $request->input('return_date', ''),
+                            'image' => null,
+                        ],
+                        'employees' => Employee::all()->map(function ($employee) {
+                            $fullName = trim(
+                                implode(' ', array_filter([
+                                    $employee->first_name,
+                                    $employee->middle_name,
+                                    $employee->last_name,
+                                ], fn($value) => !is_null($value) && $value !== ''))
+                            ) ?: 'Unnamed Employee';
+                            return [
+                                'id' => $employee->id,
+                                'full_name' => $fullName,
+                            ];
+                        })->toArray(),
+                        'errors' => ['image' => 'Failed to store image'],
+                    ]);
+                }
+                $data['image'] = $path;
+                Log::info('Image stored successfully', ['path' => $path, 'url' => Storage::url($path)]);
+            }
+
             $inventory->update([
                 'name' => $data['name'],
                 'category' => $data['category'],
@@ -438,6 +496,7 @@ class InventoryController extends Controller
                 'unit_qty' => $data['unit_qty'],
                 'status' => $data['status'],
                 'return_date' => $data['return_date'],
+                'image' => $data['image'] ?? $inventory->image,
             ]);
 
             DB::commit();
@@ -488,6 +547,7 @@ class InventoryController extends Controller
                     'unit_qty' => (int) $request->input('unit_qty', 1),
                     'status' => $request->input('status', 'Good'),
                     'return_date' => $request->input('return_date', ''),
+                    'image' => $inventory->image ? Storage::url($inventory->image) : null,
                 ],
                 'employees' => Employee::all()->map(function ($employee) {
                     $fullName = trim(
