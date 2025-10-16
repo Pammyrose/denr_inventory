@@ -23,6 +23,8 @@ interface InventoryItem {
     full_name: string;
     assigned_date: string;
     unit_qty: number;
+    status: string;
+    return_date: string;
 }
 
 interface Employee {
@@ -33,7 +35,6 @@ interface Employee {
 const props = defineProps<{
     item: InventoryItem;
     employees: Employee[];
-   
 }>();
 
 const form = useForm({
@@ -52,6 +53,8 @@ const form = useForm({
     assigned_to: props.item.assigned_to ? Number(props.item.assigned_to) : null,
     assigned_date: props.item.assigned_date || '',
     unit_qty: props.item.unit_qty || 1,
+    status: props.item.status || 'Good',
+    return_date: props.item.return_date || '',
 });
 
 const errors = ref<{ [key: string]: string }>(props.errors ? Object.fromEntries(
@@ -270,7 +273,7 @@ const submit = () => {
                     />
                     <span v-if="errors.coa_date" class="text-red-600 text-sm">{{ errors.coa_date }}</span>
                 </div>
-                 <div>
+                <div>
                     <Label for="assigned_to">Assigned To</Label>
                     <select
                         id="assigned_to"
@@ -307,6 +310,32 @@ const submit = () => {
                     />
                     <span v-if="errors.unit_qty" class="text-red-600 text-sm">{{ errors.unit_qty }}</span>
                 </div>
+                <div>
+                    <Label for="status">Status</Label>
+                    <select
+                        id="status"
+                        v-model="form.status"
+                        class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        :class="{ 'border-red-500': errors.status }"
+                    >
+                        <option value="Good">Good</option>
+                        <option value="Check">Check</option>
+                        <option value="Repair">Repair</option>
+                        <option value="Upgrade">Upgrade</option>
+                    </select>
+                    <span v-if="errors.status" class="text-red-600 text-sm">{{ errors.status }}</span>
+                </div>
+                <div>
+                    <Label for="return_date">Return Date</Label>
+                    <Input
+                        id="return_date"
+                        v-model="form.return_date"
+                        type="date"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        :class="{ 'border-red-500': errors.return_date }"
+                    />
+                    <span v-if="errors.return_date" class="text-red-600 text-sm">{{ errors.return_date }}</span>
+                </div>
             </div>
 
             <div class="flex justify-end gap-3">
@@ -329,4 +358,3 @@ const submit = () => {
         </form>
     </div>
 </template>
-

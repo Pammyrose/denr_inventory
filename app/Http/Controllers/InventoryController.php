@@ -50,6 +50,7 @@ class InventoryController extends Controller
                 'coa_date' => $item->coa_date,
                 'assigned_date' => $item->assigned_date,
                 'unit_qty' => $item->unit_qty,
+                'return_date' => $item->return_date,
                 'image' => $imageUrl,
             ];
         })->toArray();
@@ -262,10 +263,12 @@ class InventoryController extends Controller
                 'coa_representative' => $inventory->coa_representative ?? '',
                 'coa_date' => $inventory->coa_date ?? '',
                 'assigned' => $inventory->assigned !== null ? (int)$inventory->assigned : null,
-                'assigned_to' => $inventory->assigned !== null ? (int)$inventory->assigned : null, // Alias for frontend
+                'assigned_to' => $inventory->assigned !== null ? (int)$inventory->assigned : null,
                 'full_name' => $fullName,
                 'assigned_date' => $inventory->assigned_date ?? '',
                 'unit_qty' => (int) ($inventory->unit_qty ?? 1),
+                'status' => $inventory->status ?? 'Good',
+                'return_date' => $inventory->return_date ?? '',
             ];
 
             Log::info('InventoryController@edit: Inventory item and employees for edit form', [
@@ -303,10 +306,12 @@ class InventoryController extends Controller
                     'coa_representative' => '',
                     'coa_date' => '',
                     'assigned' => null,
-                    'assigned_to' => null, // Alias for frontend
+                    'assigned_to' => null,
                     'full_name' => 'Unassigned',
                     'assigned_date' => '',
                     'unit_qty' => 1,
+                    'status' => 'Good',
+                    'return_date' => '',
                 ],
                 'employees' => Employee::all()->map(function ($employee) {
                     $fullName = trim(
@@ -343,6 +348,8 @@ class InventoryController extends Controller
             'coa_date' => 'required|date',
             'assigned_date' => 'required|date',
             'unit_qty' => 'required|integer|min:0|max:9999999',
+            'status' => 'required|string|in:Good,Check,Repair,Upgrade',
+            'return_date' => 'nullable|date',
         ]);
 
         if ($validator->fails()) {
@@ -379,10 +386,12 @@ class InventoryController extends Controller
                     'coa_representative' => $request->input('coa_representative', ''),
                     'coa_date' => $request->input('coa_date', ''),
                     'assigned' => $request->input('assigned', null),
-                    'assigned_to' => $request->input('assigned', null), // Alias for frontend
+                    'assigned_to' => $request->input('assigned', null),
                     'full_name' => $fullName,
                     'assigned_date' => $request->input('assigned_date', ''),
                     'unit_qty' => (int) $request->input('unit_qty', 1),
+                    'status' => $request->input('status', 'Good'),
+                    'return_date' => $request->input('return_date', ''),
                 ],
                 'employees' => Employee::all()->map(function ($employee) {
                     $fullName = trim(
@@ -406,7 +415,6 @@ class InventoryController extends Controller
 
             $inventory = Inventory::where('asset_id', $asset_id)->firstOrFail();
             $data = $request->all();
-            // Map assigned_to to assigned if present
             if ($request->has('assigned_to')) {
                 $data['assigned'] = $request->input('assigned_to') !== '' ? (int)$request->input('assigned_to') : null;
                 unset($data['assigned_to']);
@@ -428,6 +436,8 @@ class InventoryController extends Controller
                 'assigned' => $data['assigned'],
                 'assigned_date' => $data['assigned_date'],
                 'unit_qty' => $data['unit_qty'],
+                'status' => $data['status'],
+                'return_date' => $data['return_date'],
             ]);
 
             DB::commit();
@@ -472,10 +482,12 @@ class InventoryController extends Controller
                     'coa_representative' => $request->input('coa_representative', ''),
                     'coa_date' => $request->input('coa_date', ''),
                     'assigned' => $request->input('assigned', null),
-                    'assigned_to' => $request->input('assigned', null), // Alias for frontend
+                    'assigned_to' => $request->input('assigned', null),
                     'full_name' => $fullName,
                     'assigned_date' => $request->input('assigned_date', ''),
                     'unit_qty' => (int) $request->input('unit_qty', 1),
+                    'status' => $request->input('status', 'Good'),
+                    'return_date' => $request->input('return_date', ''),
                 ],
                 'employees' => Employee::all()->map(function ($employee) {
                     $fullName = trim(

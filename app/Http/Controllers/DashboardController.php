@@ -75,7 +75,7 @@ class DashboardController extends Controller
             ->whereNotNull('assets.assigned')
             ->whereNotNull('assets.assigned_date')
             ->where('assets.assigned_date', '<=', $fiveYearsAgo)
-            ->whereRaw('LOWER(assets.status) = ?', ['check'])
+            ->whereRaw('assets.status = ?', ['Check'])
             ->get()
             ->map(function ($item) {
                 return [
