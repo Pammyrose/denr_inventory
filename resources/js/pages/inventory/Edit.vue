@@ -211,12 +211,15 @@ const submit = () => {
                 </div>
                 <div>
                     <Label for="condition">Condition</Label>
-                    <Input
+                    <select
                         id="condition"
                         v-model="form.condition"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        :class="{ 'border-red-500': errors.condition }"
-                    />
+                        class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option value="" disabled>Select Condition</option>
+                        <option value="New">New</option>
+                        <option value="Old">Old</option>
+                    </select>
                     <span v-if="errors.condition" class="text-red-600 text-sm">{{ errors.condition }}</span>
                 </div>
                 <div>
