@@ -340,7 +340,7 @@ class InventoryController extends Controller
             'location' => 'required|string|max:255',
             'purchase_date' => 'required|date',
             'value' => 'required|numeric|min:0|max:9999999.99',
-            'condition' => 'required|string|in:New,Good,Fair,Poor',
+            'condition' => 'required|string|in:New,Old',
             'assigned' => 'nullable|integer|exists:employees,id',
             'property_no' => 'required|string|max:255',
             'serial_no' => 'required|string|max:255',
