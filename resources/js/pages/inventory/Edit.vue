@@ -123,7 +123,7 @@ const submit = () => {
 </script>
 
 <template>
-    <div class="relative max-w-4xl mx-auto p-6">
+    <div class="relative max-w-6xl mx-auto p-6">
         <div
             v-if="alertMessage && alertType"
             class="mb-4 p-4 rounded-r-md border-l-4"
@@ -141,10 +141,10 @@ const submit = () => {
         </div>
         <pre v-if="Object.keys(errors).length > 0" class="text-red-600">Errors: {{ JSON.stringify(errors, null, 2) }}</pre>
 
-        <form @submit.prevent="submit" class="space-y-6">
-            <h2 class="text-2xl font-semibold text-gray-900">Update Inventory Item</h2>
+        <form @submit.prevent="submit" class="space-y-4">
+            <h2 class="text-lg font-semibold text-black">Update Inventory Item</h2>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-3 gap-4 text-black">
                 <div>
                     <Label for="name">Name</Label>
                     <Input
@@ -167,12 +167,23 @@ const submit = () => {
                 </div>
                 <div>
                     <Label for="location">Location</Label>
-                    <Input
+                    <select
                         id="location"
                         v-model="form.location"
-                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        :class="{ 'border-red-500': errors.location }"
-                    />
+                        class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option value="" disabled>Select Location</option>
+                        <option value="PMD">PMD</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Legal">Legal</option>
+                        <option value="CDD">CDD</option>
+                        <option value="SAM">SAM</option>
+                        <option value="LPD">LPD</option>
+                        <option value="Enforcement">Enforcement</option>
+                        <option value="Technical">Technical</option>
+                        <option value="MSD">MSD</option>
+                    </select>
                     <span v-if="errors.location" class="text-red-600 text-sm">{{ errors.location }}</span>
                 </div>
                 <div>
