@@ -49,7 +49,7 @@ const submitAssignmentPlace = () => {
 </script>
 
 <template>
-    <form @submit.prevent="submitAssignmentPlace" class="space-y-6">
+    <form @submit.prevent="submitAssignmentPlace" class="space-y-6 text-black">
         <div>
             <Label for="name">Name</Label>
             <Input

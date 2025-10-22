@@ -55,7 +55,7 @@ const submitPosition = () => {
 </script>
 
 <template>
-    <form @submit.prevent="submitPosition" class="space-y-6">
+    <form @submit.prevent="submitPosition" class="space-y-6 text-black">
         <div v-if="Object.keys(positionErrors).length" class="text-red-600 text-sm mb-4">
             <p>Please correct the following errors:</p>
             <p v-for="(error, field) in positionErrors" :key="field">{{ error }}</p>

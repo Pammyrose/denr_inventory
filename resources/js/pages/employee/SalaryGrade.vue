@@ -84,7 +84,7 @@ const submitSalaryGrade = () => {
 </script>
 
 <template>
-    <form @submit.prevent="submitSalaryGrade" class="space-y-6">
+    <form @submit.prevent="submitSalaryGrade" class="space-y-6 text-black">
         <div>
             <Label for="item_code">Position</Label>
             <select

@@ -46,7 +46,7 @@ const submitOrgUnit = () => {
 </script>
 
 <template>
-    <form @submit.prevent="submitOrgUnit" class="space-y-6">
+    <form @submit.prevent="submitOrgUnit" class="space-y-6 text-black">
         <div>
             <Label for="org_code">Organization Code</Label>
             <Input
