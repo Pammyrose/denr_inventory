@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { router, usePage, useForm } from '@inertiajs/vue3';
 import Button from '@/components/ui/button/Button.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -29,18 +29,53 @@ interface Employee {
     full_name: string;
 }
 
-// Define props for inventory items and employees
+// Define props for inventory items, employees, and error
 interface Props {
     assets: InventoryItem[];
     employees: Employee[];
+    error?: string | null; // Added to handle error prop like in reference
 }
 
 const props = defineProps<Props>();
 
 const page = usePage();
 
+// Alert state
+const alertMessage = ref<string>(''); // Changed from alertMessage.value = null
+const alertType = ref<'success' | 'error' | ''>(''); // Added to handle success/error types
+
 // Log props for debugging
-console.log('Index.vue Props:', { assets: props.assets, employees: props.employees });
+onMounted(() => {
+    console.log('Index.vue Props:', { assets: props.assets, employees: props.employees, error: props.error });
+    // Handle error prop like in reference
+    if (props.error) {
+        console.log('Index.vue: Error prop detected:', props.error);
+        alertMessage.value = props.error;
+        alertType.value = 'error';
+        setTimeout(() => {
+            alertMessage.value = '';
+            alertType.value = '';
+        }, 3000);
+    }
+});
+
+// Watch for flash messages like in reference
+watch(
+    () => (page.props as any).flash,
+    (flash) => {
+        console.log('Index.vue: Watch triggered, flash:', flash);
+        if (flash?.message) {
+            console.log('Index.vue: Flash message detected:', flash.message);
+            alertMessage.value = flash.message;
+            alertType.value = 'success';
+            setTimeout(() => {
+                alertMessage.value = '';
+                alertType.value = '';
+            }, 2000);
+        }
+    },
+    { immediate: true }
+);
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -70,9 +105,6 @@ const filteredAssets = computed(() => {
 const isCreateModalOpen = ref(false);
 // Modal visibility for Edit
 const isEditModalOpen = ref(false);
-// Modal visibility for Alert
-const isAlertModalOpen = ref(false);
-const alertMessage = ref<string | null>(null);
 // Modal visibility for Delete Confirmation
 const isConfirmDeleteModalOpen = ref(false);
 const itemToDelete = ref<string | null>(null);
@@ -109,6 +141,7 @@ const openEditModal = (item: InventoryItem) => {
     console.log('Opening edit modal with item:', selectedItem.value);
     isEditModalOpen.value = true;
 };
+
 const closeEditModal = () => {
     isEditModalOpen.value = false;
     selectedItem.value = null;
@@ -121,10 +154,10 @@ const deleteItem = (item: InventoryItem | undefined) => {
     if (!item) {
         console.error('No item provided for deletion');
         alertMessage.value = 'Error: No item selected for deletion';
-        isAlertModalOpen.value = true;
+        alertType.value = 'error';
         setTimeout(() => {
-            isAlertModalOpen.value = false;
-            alertMessage.value = null;
+            alertMessage.value = '';
+            alertType.value = '';
         }, 3000);
         return;
     }
@@ -135,46 +168,32 @@ const deleteItem = (item: InventoryItem | undefined) => {
         onSuccess: () => {
             console.log('Asset deleted successfully');
             alertMessage.value = 'Asset deleted successfully';
-            isAlertModalOpen.value = true;
+            alertType.value = 'success';
             closeConfirmDeleteModal();
             setTimeout(() => {
-                isAlertModalOpen.value = false;
-                alertMessage.value = null;
+                alertMessage.value = '';
+                alertType.value = '';
             }, 3000);
         },
         onError: (errors) => {
             console.error('Error deleting asset:', errors);
             const errorMessage = Object.values(errors).join(', ') || 'Failed to delete asset';
             alertMessage.value = errorMessage;
-            isAlertModalOpen.value = true;
+            alertType.value = 'error';
             setTimeout(() => {
-                isAlertModalOpen.value = false;
-                alertMessage.value = null;
+                alertMessage.value = '';
+                alertType.value = '';
             }, 3000);
         },
     });
 };
 
-// Alert modal control
-const showAlertModal = () => {
-    if (page.props.flash?.message) {
-        console.log('Flash message detected:', page.props.flash.message);
-        alertMessage.value = page.props.flash.message;
-        isAlertModalOpen.value = true;
-        setTimeout(() => {
-            isAlertModalOpen.value = false;
-            alertMessage.value = null;
-        }, 3000);
-    }
-};
-
-// Close create modal after navigation and show alert
+// Close create modal after navigation
 onMounted(() => {
     router.on('finish', () => {
         console.log('Navigation finished, closing create modal');
         isCreateModalOpen.value = false;
     });
-    showAlertModal();
 });
 </script>
 
@@ -183,35 +202,18 @@ onMounted(() => {
 
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="p-4">
-            <!-- Alert Modal -->
+            <!-- Alert -->
             <div
-                v-if="isAlertModalOpen && alertMessage"
-                class="fixed bottom-110 inset-0 z-50 flex items-center justify-center bg-transparent transition-opacity duration-300"
-                @click.self="isAlertModalOpen = false; alertMessage = null"
+                v-if="alertMessage"
+                :class="{
+                    'bg-green-100 border-green-400 text-green-700': alertType === 'success',
+                    'bg-red-100 border-red-400 text-red-700': alertType === 'error',
+                }"
+                class="border-l-4 p-4 mb-4 rounded-r-md"
+                role="alert"
             >
-                <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative border border-gray-300 opacity-100 transition-opacity duration-300">
-                    <button
-                        @click="isAlertModalOpen = false; alertMessage = null"
-                        class="absolute top-3 right-3 text-gray-600 hover:text-gray-800 focus:outline-none"
-                        aria-label="Close modal"
-                    >
-                        <svg
-                            class="w-6 h-6"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            xmlns="http://www.w3.org/2000/svg"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M6 18L18 6M6 6l12 12"
-                            />
-                        </svg>
-                    </button>
-                    <p class="mt-2 text-gray-800">{{ alertMessage }}</p>
-                </div>
+                <p class="font-medium">{{ alertType === 'success' ? 'Success' : 'Error' }}</p>
+                <p>{{ alertMessage }}</p>
             </div>
 
             <!-- Search Input and Create Button -->
@@ -244,7 +246,6 @@ onMounted(() => {
                         />
                     </svg>
                 </div>
-
             </div>
 
             <!-- Create Modal -->
@@ -274,7 +275,6 @@ onMounted(() => {
                             />
                         </svg>
                     </button>
-
                     <Create :closeModal="closeCreateModal" :employees="props.employees" />
                 </div>
             </div>
@@ -306,7 +306,6 @@ onMounted(() => {
                             />
                         </svg>
                     </button>
-
                     <Edit :item="selectedItem" :employees="props.employees" :closeModal="closeEditModal" />
                 </div>
             </div>

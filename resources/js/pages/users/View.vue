@@ -51,6 +51,7 @@ defineProps({
                   <th class="border border-gray-300 p-2">Category</th>
                   <th class="border border-gray-300 p-2">Location</th>
                   <th class="border border-gray-300 p-2">Assigned Date</th>
+                  <th class="border border-gray-300 p-2">Returned Date</th>
                 </tr>
               </thead>
               <tbody>
@@ -59,6 +60,7 @@ defineProps({
                   <td class="border border-gray-300 p-2">{{ asset.category || 'N/A' }}</td>
                   <td class="border border-gray-300 p-2">{{ asset.location || 'N/A' }}</td>
                   <td class="border border-gray-300 p-2">{{ asset.purchase_date || 'N/A' }}</td>
+                  <td class="border border-gray-300 p-2">{{ asset.return_date || 'N/A' }}</td>
                 </tr>
               </tbody>
             </table>

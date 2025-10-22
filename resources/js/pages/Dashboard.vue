@@ -378,6 +378,7 @@ const chartOptionsLocations = computed(() => ({
       <!-- Second Row: Charts -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- Pie Chart for Assets by Location -->
+         <Link :href="route('report.index')">
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Assets by Location</h3>
           <div class="relative h-[400px] max-w-[400px] mx-auto">
@@ -392,6 +393,7 @@ const chartOptionsLocations = computed(() => ({
             </div>
           </div>
         </div>
+      </Link>
 
         <!-- Line Charts Container -->
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-sidebar-border/70 dark:border-sidebar-border p-4">
@@ -415,6 +417,7 @@ const chartOptionsLocations = computed(() => ({
       </div>
 
       <!-- Table Section -->
+       <Link :href="route('inventory.index')">
       <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
         <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
           <thead class="text-xs text-white uppercase bg-gradient-to-b from-green-300 to-green-600">
@@ -454,13 +457,10 @@ const chartOptionsLocations = computed(() => ({
                 {{ asset.name }}
               </th>
               <td class="px-6 py-4">{{ asset.assigned_date }}</td>
-              <td class="px-6 py-4 relative">
-                <button
-                  @click="toggleDropdown(asset.id, $event)"
-                  class="status-button font-medium text-blue-600 dark:text-blue-500 hover:underline"
-                >
+              <td class="px-6 py-4 relative text-red-500 font-medium underline">
+            
                   {{ asset.status }}
-                </button>
+              
               </td>
             </tr>
             <tr v-if="dashboardData.assignedAssetsTable.length === 0">
@@ -474,24 +474,8 @@ const chartOptionsLocations = computed(() => ({
           </tbody>
         </table>
       </div>
-
-      <!-- Dropdown Portal -->
-      <div
-        v-if="activeDropdown !== null"
-        class="dropdown-menu fixed z-50 w-32 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg"
-        :style="{ top: `${dropdownPosition.top}px`, left: `${dropdownPosition.left}px` }"
-      >
-        <ul class="py-1 text-sm text-gray-700 dark:text-gray-200">
-          <li
-            v-for="status in statusOptions"
-            :key="status"
-            @click="changeStatus(activeDropdown!, status)"
-            class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white cursor-pointer"
-          >
-            {{ status }}
-          </li>
-        </ul>
-      </div>
+    </Link>
+      
     </div>
   </AppLayout>
 </template>

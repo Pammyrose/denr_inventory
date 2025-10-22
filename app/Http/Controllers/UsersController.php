@@ -101,6 +101,7 @@ public function index()
                         'value' => $asset->value ?? 0,
                         'condition' => $asset->condition ?? 'N/A',
                         'status' => $asset->status ?? 'N/A',
+                        'return_date' => $asset->return_date ? $asset->return_date : 'N/A',
                     ];
                 })->toArray();
                 Log::info('UsersController@show: Assets mapped', [
