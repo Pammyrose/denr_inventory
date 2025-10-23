@@ -16,7 +16,9 @@ class CreateEmployeesTable extends Migration
             $table->string('suffix')->nullable();
             $table->string('sex', 1);
             $table->string('email')->unique();
+            $table->string('contact_no')->unique();
             $table->string('emp_status');
+            
 
             // ✅ Use foreign key IDs instead of names
             $table->unsignedBigInteger('position_name');
@@ -27,8 +29,8 @@ class CreateEmployeesTable extends Migration
 
             // ✅ Proper foreign key constraints
             $table->foreign('position_name')->references('id')->on('positions')->onDelete('restrict');
-            $table->foreign('assignment_name')->references('id')->on('assignment_places')->onDelete('restrict');
-            $table->foreign('div_sec_unit')->references('id')->on('org_units')->onDelete('restrict');
+            $table->foreign('assignment_name')->references('id')->on('assignments')->onDelete('restrict');
+            $table->foreign('div_sec_unit')->references('id')->on('div_sec_units')->onDelete('restrict');
         });
     }
 

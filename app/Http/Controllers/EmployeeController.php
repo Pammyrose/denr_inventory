@@ -63,11 +63,12 @@ public function store(Request $request)
             'last_name' => 'required|string|max:255',
             'suffix' => 'nullable|string|max:50',
             'sex' => 'required|string|in:M,F',
+            'contact_no' => 'required|digits_between:10,15|unique:employees,contact_no',
             'email' => 'required|email|unique:employees,email|max:255|unique:users,email',
             'emp_status' => 'required|string|in:Active,Inactive,On Leave',
             'position_name' => 'required|exists:positions,id',
-            'assignment_name' => 'required|exists:assignment_places,id',
-            'div_sec_unit' => 'required|exists:org_units,id',
+            'assignment_name' => 'required|exists:assignments,id',
+            'div_sec_unit' => 'required|exists:div_sec_units,id',
             'password' => 'required|string|min:8|confirmed',
             'date_of_birth' => 'required|date',
             'tin_no' => 'nullable|string|max:255',
@@ -96,6 +97,7 @@ public function store(Request $request)
             'last_name' => $validated['last_name'],
             'suffix' => $validated['suffix'],
             'sex' => $validated['sex'],
+            'contact_no' => $validated['contact_no'],
             'email' => $validated['email'],
             'emp_status' => $validated['emp_status'],
             'position_name' => $validated['position_name'],
@@ -152,6 +154,7 @@ public function store(Request $request)
                     'last_name' => $employee->last_name ?? 'N/A',
                     'suffix' => $employee->suffix ?? '',
                     'sex' => $employee->sex ?? 'N/A',
+                    'contact_no' => $employee->contact_no ?? 'N/A',
                     'email' => $employee->email ?? 'N/A',
                     'emp_status' => $employee->emp_status ?? 'N/A',
                     'position_name' => $employee->position_name ? (string)$employee->position_name : null,
@@ -206,6 +209,7 @@ public function store(Request $request)
                 'suffix' => $employee->suffix ?? '',
                 'sex' => $employee->sex ?? 'N/A',
                 'email' => $employee->email ?? 'N/A',
+                'contact_no' => $employee->contact_no ?? 'N/A',
                 'emp_status' => $employee->emp_status ?? 'N/A',
                 'position_name' => $employee->position ? $employee->position->name : 'N/A', // Use name from positions table
                 'assignment_name' => $employee->assignment ? $employee->assignment->name : 'N/A', // Use name from assignment_places table
@@ -266,6 +270,7 @@ public function store(Request $request)
                 'suffix' => $employee->suffix ?? '',
                 'sex' => $employee->sex ?? 'N/A',
                 'email' => $employee->email ?? 'N/A',
+                'contact_no' => $employee->contact_no ?? 'N/A',
                 'emp_status' => $employee->emp_status ?? 'N/A',
                 'position_id' => $employee->position_id ? (string)$employee->position_id : null,
                 'assignment_id' => $employee->assignment_id ? (string)$employee->assignment_id : null,
@@ -293,10 +298,11 @@ public function store(Request $request)
         'suffix' => 'nullable|string|max:50',
         'sex' => 'required|string|in:M,F',
         'email' => 'nullable|email|max:255',
+        'contact_no' => 'required|digits_between:10,15|unique:employees,contact_no',
         'emp_status' => 'required|string|in:Active,Inactive,On Leave',
         'position_id' => 'required|exists:positions,id',
         'assignment_id' => 'required|exists:assignment_places,id',
-        'org_unit_id' => 'required|exists:org_units,id',
+        'div_sec_unit' => 'required|exists:div_sec_units,id',
         'password' => 'nullable|string|min:8|confirmed',
         'date_of_birth' => 'required|date',
         'tin_no' => 'nullable|string|max:255',
@@ -325,6 +331,7 @@ public function store(Request $request)
             'suffix' => $request->suffix,
             'sex' => $request->sex,
             'email' => $request->has('email') ? $request->email : $employee->email,
+            'contact_no' => $request->contact_no,
             'emp_status' => $request->emp_status,
             'position_name' => $request->position_id, // Map position_id to position_name
             'assignment_name' => $request->assignment_id, // Map assignment_id to assignment_name
@@ -396,10 +403,11 @@ public function store(Request $request)
             'suffix' => $employee->suffix,
             'sex' => $employee->sex,
             'email' => $employee->email,
+            'contact_no' => $employee->contact_no,
             'emp_status' => $employee->emp_status,
             'position_id' => $employee->position_name, // Map position_name to position_id
             'assignment_id' => $employee->assignment_name, // Map assignment_name to assignment_id
-            'org_unit_id' => $employee->div_sec_unit, // Map div_sec_unit to org_unit_id
+            'div_sec_unit' => $employee->div_sec_unit, // Map div_sec_unit to org_unit_id
             'archived_at' => now(),
         ]);
 
@@ -466,6 +474,7 @@ public function store(Request $request)
             'last_name' => $archivedEmployee->last_name,
             'suffix' => $archivedEmployee->suffix,
             'sex' => $archivedEmployee->sex,
+            'contact_no' => $archivedEmployee->contact_no,
             'email' => $archivedEmployee->email,
             'emp_status' => $archivedEmployee->emp_status,
             'position_name' => $positionId,
@@ -497,7 +506,7 @@ public function store(Request $request)
     public function storeOrgUnit(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'org_code' => 'required|string|max:255|unique:org_units,org_code',
+            'org_code' => 'required|string|max:255|unique:div_sec_units,org_code',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string|max:1000',
         ]);

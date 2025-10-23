@@ -43,6 +43,7 @@ const form = useForm({
     suffix: '',
     sex: '',
     email: '',
+    contact_no: '',
     password: '',
     password_confirmation: '',
     emp_status: '',
@@ -101,6 +102,7 @@ const validate = () => {
     if (!form.email) errors.value.email = 'Email is required';
     if (!form.sex) errors.value.sex = 'Sex is required';
     if (!form.emp_status) errors.value.emp_status = 'Employee status is required';
+    if (!form.contact_no) errors.value.contact_no = 'Contact No is required';
     if (!form.position_name) errors.value.position_name = 'Position is required';
     if (!form.assignment_name) errors.value.assignment_name = 'Assignment is required';
     if (!form.div_sec_unit) errors.value.div_sec_unit = 'Division Section Unit is required';
@@ -339,6 +341,11 @@ const addAssignment = () => {
                     <Label for="email">Email</Label>
                     <Input id="email" type="email" v-model="form.email" />
                     <span v-if="errors.email" class="text-red-600 text-sm">{{ errors.email }}</span>
+                </div>
+                                <div>
+                    <Label for="contact_no">Contact No.</Label>
+                    <Input id="contact_no" v-model="form.contact_no" />
+                    <span v-if="errors.contact_no" class="text-red-600 text-sm">{{ errors.contact_no }}</span>
                 </div>
             </div>
 

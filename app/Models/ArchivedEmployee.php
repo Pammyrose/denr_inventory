@@ -48,6 +48,6 @@ class ArchivedEmployee extends Model
 
     public function orgUnit()
     {
-        return $this->belongsTo(OrgUnit::class, 'org_unit_id');
+        return $this->belongsTo(OrgUnit::class, 'div_sec_unit');
     }
 }

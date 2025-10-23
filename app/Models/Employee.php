@@ -23,6 +23,7 @@ class Employee extends Model
         'position_name',
         'assignment_name',
         'div_sec_unit',
+        'contact_no',
         
     ];
 

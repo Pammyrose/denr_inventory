@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class OrgUnit extends Model
 {
-    protected $table = 'org_units';
+    protected $table = 'div_sec_units';
     
     protected $primaryKey = 'org_code';
     
