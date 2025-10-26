@@ -72,7 +72,6 @@ const searchQuery = ref('');
 const isCreateModalOpen = ref(false);
 const isEditModalOpen = ref(false);
 const selectedEmployee = ref<Employee | null>(null);
-const employeeToArchive = ref<number | null>(null);
 
 const filteredEmployees = computed(() => {
   if (!props.employees || !Array.isArray(props.employees)) {
@@ -126,10 +125,19 @@ const openConfirmArchiveModal = (employeeId: number) => {
 
 const archiveEmployee = (employeeId: number) => {
   console.log('Archiving employee:', employeeId);
-  router.delete(route('employee.archive', employeeId), {
+  router.post(route('employee.store'), { archive_employee_id: employeeId }, {
     onSuccess: () => {
-      console.log('Archive successful - reloading page');
-      window.location.reload();  // Forces refresh to remove the archived employee from the list
+      console.log('Archive successful');
+      // Update the employees list by filtering out the archived employee
+      if (props.employees) {
+        props.employees = props.employees.filter(emp => emp.id !== employeeId);
+      }
+      alertMessage.value = 'Employee archived successfully';
+      alertType.value = 'success';
+      setTimeout(() => {
+        alertMessage.value = '';
+        alertType.value = '';
+      }, 3000);
     },
     onError: (errors) => {
       console.error('Archive failed:', errors);
@@ -182,12 +190,24 @@ watch(
 
       <!-- Search Input and Create Button -->
       <div class="flex justify-between items-center mb-4">
-        <Button
-          @click="openCreateModal"
-          class="bg-blue-600 text-white hover:bg-blue-700"
-        >
-          Create
-        </Button>
+        <div class="flex gap-2">
+          <Button
+            @click="openCreateModal"
+            class="bg-blue-600 text-white hover:bg-blue-700"
+          >
+            Create
+          </Button>
+          <Link
+            :href="route('employee.archived')"
+            class="bg-gray-200 text-white px-4 py-2 rounded-md"
+          >
+          <svg class="w-4 h-4 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="currentColor" viewBox="0 0 24 24">
+  <path fill-rule="evenodd" d="M20 10H4v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8ZM9 13v-1h6v1a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1Z" clip-rule="evenodd"/>
+  <path d="M2 6a2 2 0 0 1 2-2h16a2 2 0 1 1 0 4H4a2 2 0 0 1-2-2Z"/>
+</svg>
+
+          </Link>
+        </div>
         <div class="relative w-full max-w-md">
           <input
             v-model="searchQuery"

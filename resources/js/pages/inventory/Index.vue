@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
-import { router, usePage, useForm } from '@inertiajs/vue3';
+import { router, usePage, useForm, Link } from '@inertiajs/vue3';
 import Button from '@/components/ui/button/Button.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import Create from './Create.vue';
@@ -33,7 +33,7 @@ interface Employee {
 interface Props {
     assets: InventoryItem[];
     employees: Employee[];
-    error?: string | null; // Added to handle error prop like in reference
+    error?: string | null;
 }
 
 const props = defineProps<Props>();
@@ -41,13 +41,12 @@ const props = defineProps<Props>();
 const page = usePage();
 
 // Alert state
-const alertMessage = ref<string>(''); // Changed from alertMessage.value = null
-const alertType = ref<'success' | 'error' | ''>(''); // Added to handle success/error types
+const alertMessage = ref<string>('');
+const alertType = ref<'success' | 'error' | ''>('');
 
 // Log props for debugging
 onMounted(() => {
     console.log('Index.vue Props:', { assets: props.assets, employees: props.employees, error: props.error });
-    // Handle error prop like in reference
     if (props.error) {
         console.log('Index.vue: Error prop detected:', props.error);
         alertMessage.value = props.error;
@@ -59,7 +58,7 @@ onMounted(() => {
     }
 });
 
-// Watch for flash messages like in reference
+// Watch for flash messages
 watch(
     () => (page.props as any).flash,
     (flash) => {
@@ -105,19 +104,19 @@ const filteredAssets = computed(() => {
 const isCreateModalOpen = ref(false);
 // Modal visibility for Edit
 const isEditModalOpen = ref(false);
-// Modal visibility for Delete Confirmation
-const isConfirmDeleteModalOpen = ref(false);
-const itemToDelete = ref<string | null>(null);
+// Modal visibility for Archive Confirmation
+const isConfirmArchiveModalOpen = ref(false);
+const itemToArchive = ref<string | null>(null);
 
-// Modal controls for Delete Confirmation
-const openConfirmDeleteModal = (id: string) => {
-    itemToDelete.value = id;
-    isConfirmDeleteModalOpen.value = true;
+// Modal controls for Archive Confirmation
+const openConfirmArchiveModal = (id: string) => {
+    itemToArchive.value = id;
+    isConfirmArchiveModalOpen.value = true;
 };
 
-const closeConfirmDeleteModal = () => {
-    isConfirmDeleteModalOpen.value = false;
-    itemToDelete.value = null;
+const closeConfirmArchiveModal = () => {
+    isConfirmArchiveModalOpen.value = false;
+    itemToArchive.value = null;
 };
 
 // Modal controls for Create
@@ -150,10 +149,10 @@ const closeEditModal = () => {
 // Selected inventory item for editing
 const selectedItem = ref<InventoryItem | null>(null);
 
-const deleteItem = (item: InventoryItem | undefined) => {
+const archiveItem = (item: InventoryItem | undefined) => {
     if (!item) {
-        console.error('No item provided for deletion');
-        alertMessage.value = 'Error: No item selected for deletion';
+        console.error('No item provided for archiving');
+        alertMessage.value = 'Error: No item selected for archiving';
         alertType.value = 'error';
         setTimeout(() => {
             alertMessage.value = '';
@@ -161,23 +160,25 @@ const deleteItem = (item: InventoryItem | undefined) => {
         }, 3000);
         return;
     }
-    const form = useForm({});
-    console.log('Attempting to delete asset ID:', item.id);
-    form.delete(route('inventory.destroy', { id: item.id }), {
+    const form = useForm({
+        archive_inventory_id: item.id,
+    });
+    console.log('Attempting to archive asset ID:', item.id);
+    form.post(route('inventory.store'), {
         preserveScroll: true,
         onSuccess: () => {
-            console.log('Asset deleted successfully');
-            alertMessage.value = 'Asset deleted successfully';
+            console.log('Asset archived successfully');
+            alertMessage.value = 'Asset archived successfully';
             alertType.value = 'success';
-            closeConfirmDeleteModal();
+            closeConfirmArchiveModal();
             setTimeout(() => {
                 alertMessage.value = '';
                 alertType.value = '';
             }, 3000);
         },
         onError: (errors) => {
-            console.error('Error deleting asset:', errors);
-            const errorMessage = Object.values(errors).join(', ') || 'Failed to delete asset';
+            console.error('Error archiving asset:', errors);
+            const errorMessage = Object.values(errors).join(', ') || 'Failed to archive asset';
             alertMessage.value = errorMessage;
             alertType.value = 'error';
             setTimeout(() => {
@@ -216,14 +217,22 @@ onMounted(() => {
                 <p>{{ alertMessage }}</p>
             </div>
 
-            <!-- Search Input and Create Button -->
+            <!-- Search Input and Buttons -->
             <div class="flex justify-between items-center mb-4">
-                <Button
-                    @click="openCreateModal"
-                    class="bg-blue-600 text-white hover:bg-blue-700"
-                >
-                    Create
-                </Button>
+                <div class="flex gap-2">
+                    <Button
+                        @click="openCreateModal"
+                        class="bg-blue-600 text-white hover:bg-blue-700"
+                    >
+                        Create
+                    </Button>
+                    <Link
+    :href="route('inventory.archived')"
+    class="bg-gray-600 text-white hover:bg-gray-700 px-4 py-2 rounded-md"
+>
+    View Archived
+</Link>
+                </div>
                 <div class="relative w-full max-w-md">
                     <input
                         v-model="searchQuery"
@@ -310,15 +319,15 @@ onMounted(() => {
                 </div>
             </div>
 
-            <!-- Confirmation Delete Modal -->
+            <!-- Confirmation Archive Modal -->
             <div
-                v-if="isConfirmDeleteModalOpen"
+                v-if="isConfirmArchiveModalOpen"
                 class="fixed inset-0 z-50 flex items-center justify-center bg-transparent transition-opacity duration-300"
-                @click.self="closeConfirmDeleteModal"
+                @click.self="closeConfirmArchiveModal"
             >
                 <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative border border-gray-300">
                     <button
-                        @click="closeConfirmDeleteModal"
+                        @click="closeConfirmArchiveModal"
                         class="absolute top-3 right-3 text-gray-600 hover:text-gray-800 focus:outline-none"
                         aria-label="Close modal"
                     >
@@ -337,20 +346,20 @@ onMounted(() => {
                             />
                         </svg>
                     </button>
-                    <h2 class="text-lg font-semibold">Confirm Deletion</h2>
-                    <p class="mt-2">Are you sure you want to delete this asset? This action cannot be undone.</p>
+                    <h2 class="text-lg font-semibold">Confirm Archiving</h2>
+                    <p class="mt-2">Are you sure you want to archive this asset? This action cannot be undone without unarchiving.</p>
                     <div class="mt-4 flex justify-end gap-2">
                         <Button
-                            @click="closeConfirmDeleteModal"
+                            @click="closeConfirmArchiveModal"
                             class="bg-gray-300 text-gray-800 hover:bg-gray-400"
                         >
                             Cancel
                         </Button>
                         <Button
-                            @click="deleteItem(props.assets.find(item => item.id === itemToDelete))"
-                            class="bg-red-600 text-white hover:bg-red-700"
+                            @click="archiveItem(props.assets.find(item => item.id === itemToArchive))"
+                            class="bg-yellow-600 text-white hover:bg-yellow-700"
                         >
-                            Delete
+                            Archive
                         </Button>
                     </div>
                 </div>
@@ -409,12 +418,17 @@ onMounted(() => {
                                 >
                                     Edit
                                 </Button>
-                                <a :href="route('inventory.view', { inventory: item.id })" class="font-medium text-green-600 dark:text-green-500 hover:underline">View</a>
-                                <Button
-                                    @click="openConfirmDeleteModal(item.id)"
-                                    class="font-medium text-red-600 bg-transparent hover:bg-transparent hover:underline border-0 shadow-none"
+                                <Link
+                                    :href="route('inventory.view', { inventory: item.id })"
+                                    class="font-medium text-green-600 dark:text-green-500 hover:underline"
                                 >
-                                    Delete
+                                    View
+                                </Link>
+                                <Button
+                                    @click="openConfirmArchiveModal(item.id)"
+                                    class="font-medium text-yellow-600 bg-transparent hover:bg-transparent hover:underline border-0 shadow-none"
+                                >
+                                    Archive
                                 </Button>
                             </td>
                         </tr>

@@ -30,6 +30,10 @@ Route::get('/profile', [ProfileController::class, 'show'])->name('profile'); // 
         Route::get('/employee', [EmployeeController::class, 'index'])->name('employee.index');
         Route::get('/employee/create', [EmployeeController::class, 'create'])->name('employee.create');
         Route::post('/employee', [EmployeeController::class, 'store'])->name('employee.store');
+        Route::post('employee', [EmployeeController::class, 'store'])->name('employee.store');
+        Route::resource('employee', EmployeeController::class);
+        Route::get('archived', [EmployeeController::class, 'archived'])->name('employee.archived');
+        Route::post('employee/{id}/unarchive', [EmployeeController::class, 'unarchive'])->name('employee.unarchive');
         Route::get('/employee/{employee}/edit', [EmployeeController::class, 'edit'])->name('employee.edit');
         Route::put('/employee/{employee}', [EmployeeController::class, 'update'])->name('employee.update');
         Route::delete('/employee/{employee}', [EmployeeController::class, 'destroy'])->name('employee.destroy');
@@ -38,9 +42,7 @@ Route::get('/profile', [ProfileController::class, 'show'])->name('profile'); // 
         Route::post('employee/salary-grade', [EmployeeController::class, 'storeSalaryGrade'])->name('employee.salaryGrade');
         Route::post('employee/assignment-place', [EmployeeController::class, 'storeAssignmentPlace'])->name('employee.assignmentPlace');
         Route::get('/employee/{employee}/view', [EmployeeController::class, 'view'])->name('employee.view');
-        Route::get('/archived', [ArchivedEmployeeController::class, 'index'])->name('archived');
-        Route::delete('/employee/{employee}/archive', [EmployeeController::class, 'archive'])->name('employee.archive');
-        Route::post('/employee/unarchive/{archivedEmployeeId}', [EmployeeController::class, 'unarchive'])->name('employee.unarchive');
+  
 
         Route::get('/users', [UsersController::class, 'index'])->name('users.index');
         Route::post('/users', [UsersController::class, 'store'])->name('users.store');
@@ -48,6 +50,9 @@ Route::get('/profile', [ProfileController::class, 'show'])->name('profile'); // 
         Route::put('/users/{user}', [UsersController::class, 'update'])->name('users.update');
         Route::get('/users/{user}', [UsersController::class, 'show'])->name('users.show');
         Route::delete('/users/{user}', [UsersController::class, 'destroy'])->name('users.destroy');
+        Route::post('archived', [UsersController::class, 'archived'])->name('users.archived');
+Route::post('/users/{user}/unarchive', [UsersController::class, 'unarchive'])->name('users.unarchive');
+Route::resource('users', UsersController::class);
 
         Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
         Route::post('/inventory', [InventoryController::class, 'store'])->name('inventory.store');
@@ -55,6 +60,9 @@ Route::get('/inventory/{inventory}/edit', [InventoryController::class, 'edit'])-
 Route::put('/inventory/{inventory}', [InventoryController::class, 'update'])->name('inventory.update');
         Route::delete('/inventory/{inventory}', [InventoryController::class, 'destroy'])->name('inventory.destroy');
         Route::get('/inventory/{inventory}', [InventoryController::class, 'view'])->name('inventory.view');
+        
+        Route::get('archived', [InventoryController::class, 'archived'])->name('inventory.archived');
+        Route::post('/inventory/{inventory}/unarchive', [InventoryController::class, 'unarchive'])->name('inventory.unarchive');
         Route::post('/inventory/tags/print', [InventoryController::class, 'printTags'])->name('inventory.printTags');
         
         

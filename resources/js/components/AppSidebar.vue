@@ -55,11 +55,7 @@ const mainNavItems: NavItem[] = computed(() => {
             href: '/users',
             icon: Users,
         },
-        {
-            title: 'Archived',
-            href: '/archived',
-            icon: Archive,
-        },
+
     ];
 });
 </script>

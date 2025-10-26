@@ -1,4 +1,3 @@
-
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { usePage, Head, Link, router } from '@inertiajs/vue3';
@@ -14,8 +13,8 @@ interface ArchivedEmployee {
   sex: string;
   email: string;
   emp_status: string;
-  position_name?: string;
-  assignment_name?: string;
+  position_id?: string;
+  assignment_id?: string;
   div_sec_unit?: string;
   archived_at: string;
 }
@@ -72,9 +71,9 @@ const filteredArchivedEmployees = computed(() => {
     const fullName = `${employee.first_name} ${employee.middle_name || ''} ${employee.last_name} ${employee.suffix || ''}`.toLowerCase();
     return (
       fullName.includes(query) ||
-      (employee.position_name?.toLowerCase().includes(query) ?? false) ||
+      (employee.position_id?.toLowerCase().includes(query) ?? false) ||
       (employee.emp_status?.toLowerCase().includes(query) ?? false) ||
-      (employee.assignment_name?.toLowerCase().includes(query) ?? false) ||
+      (employee.assignment_id?.toLowerCase().includes(query) ?? false) ||
       (employee.div_sec_unit?.toLowerCase().includes(query) ?? false) ||
       (employee.archived_at?.toLowerCase().includes(query) ?? false)
     );
@@ -92,8 +91,17 @@ const unarchiveEmployee = (employeeId: number) => {
   console.log('Unarchiving employee:', employeeId);
   router.post(route('employee.unarchive', employeeId), {}, {
     onSuccess: () => {
-      console.log('Unarchive successful - reloading page');
-      window.location.reload();
+      console.log('Unarchive successful');
+      // Update the archived employees list by filtering out the unarchived employee
+      if (props.archivedEmployees) {
+        props.archivedEmployees = props.archivedEmployees.filter(emp => emp.id !== employeeId);
+      }
+      alertMessage.value = 'Employee unarchived successfully';
+      alertType.value = 'success';
+      setTimeout(() => {
+        alertMessage.value = '';
+        alertType.value = '';
+      }, 3000);
     },
     onError: (errors) => {
       console.error('Unarchive failed:', errors);
@@ -158,6 +166,7 @@ watch(
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
           >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
@@ -190,8 +199,8 @@ watch(
               <td class="px-2 py-1 text-center">
                 {{ employee.first_name }} {{ employee.middle_name || '' }} {{ employee.last_name }} {{ employee.suffix || '' }}
               </td>
-              <td class="px-2 py-1 text-center">{{ employee.position_name || 'N/A' }}</td>
-              <td class="px-2 py-1 text-center">{{ employee.assignment_name || 'N/A' }}</td>
+              <td class="px-2 py-1 text-center">{{ employee.position_id || 'N/A' }}</td>
+              <td class="px-2 py-1 text-center">{{ employee.assignment_id || 'N/A' }}</td>
               <td class="px-2 py-1 text-center">
                 <span
                   :class="{
