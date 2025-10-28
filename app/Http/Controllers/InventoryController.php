@@ -91,6 +91,7 @@ class InventoryController extends Controller
     public function store(Request $request)
     {
         try {
+            // Check if the request is for archiving an inventory item
             if ($request->has('archive_inventory_id')) {
                 $inventory = Inventory::where('asset_id', $request->archive_inventory_id)->first();
                 if (!$inventory) {
@@ -150,15 +151,99 @@ class InventoryController extends Controller
     
                 return redirect()->route('inventory.index')->with('message', 'Inventory archived successfully');
             }
-            // ... rest of the store method ...
+
+            // Handle creation of new inventory item
+            DB::beginTransaction();
+
+            // Server-side validation
+            $validator = Validator::make($request->all(), [
+                'name' => 'required|string|max:255',
+                'category' => 'required|string|max:255',
+                'location' => 'required|string|in:PMD,Finance,Admin,Legal,CDD,SAM,LPD,Enforcement,Technical,MSD',
+                'purchase_date' => 'required|date',
+                'value' => 'required|numeric|min:0',
+                'condition' => 'required|string|in:New,Old',
+                'status' => 'required|string|in:Good,Check,Repair,Upgrade',
+                'property_no' => 'required|string|max:255',
+                'serial_no' => 'required|string|max:255',
+                'serviceable' => 'required|string|max:255',
+                'unserviceable' => 'required|string|max:255',
+                'coa_representative' => 'required|string|max:255',
+                'coa_date' => 'required|date',
+                'assigned_date' => 'required|date',
+                'unit_qty' => 'required|integer|min:1',
+                'assigned' => 'nullable|exists:employees,id',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // 2MB max
+            ]);
+
+            if ($validator->fails()) {
+                Log::warning('InventoryController: Validation failed', [
+                    'errors' => $validator->errors()->all(),
+                    'input' => $request->all(),
+                ]);
+                return back()->withErrors($validator->errors())->withInput();
+            }
+
+            // Prepare data for storage
+            $data = $request->only([
+                'name',
+                'category',
+                'location',
+                'purchase_date',
+                'value',
+                'condition',
+                'status',
+                'property_no',
+                'serial_no',
+                'serviceable',
+                'unserviceable',
+                'coa_representative',
+                'coa_date',
+                'assigned_date',
+                'unit_qty',
+                'assigned',
+            ]);
+
+            // Handle image upload
+            if ($request->hasFile('image')) {
+                try {
+                    $path = $request->file('image')->store('inventory', 'public');
+                    $data['image'] = $path;
+                    Log::info('InventoryController: Image stored successfully', [
+                        'path' => $path,
+                        'url' => Storage::url($path),
+                    ]);
+                } catch (\Exception $e) {
+                    Log::error('InventoryController: Failed to store image', [
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString(),
+                    ]);
+                    return back()->withErrors(['image' => 'Failed to store image'])->withInput();
+                }
+            }
+
+            // Generate unique asset_id (e.g., based on property_no or timestamp)
+            $data['asset_id'] = 'A-' . strtoupper(uniqid()); // Example: INV-5F7A3B2C1D
+
+            // Create inventory item
+            $inventory = Inventory::create($data);
+
+            DB::commit();
+
+            Log::info('InventoryController: Inventory item created', [
+                'asset_id' => $inventory->asset_id,
+                'data' => $data,
+            ]);
+
+            return redirect()->route('inventory.index')->with('message', 'Inventory item created successfully');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('InventoryController: Failed to process store request', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-                'archive_inventory_id' => $request->archive_inventory_id,
+                'input' => $request->all(),
             ]);
-            return back()->withErrors(['general' => 'Failed to archive inventory: ' . $e->getMessage()])->withInput();
+            return back()->withErrors(['general' => 'Failed to create inventory item: ' . $e->getMessage()])->withInput();
         }
     }
 

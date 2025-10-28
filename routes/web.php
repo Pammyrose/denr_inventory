@@ -31,8 +31,9 @@ Route::get('/profile', [ProfileController::class, 'show'])->name('profile'); // 
         Route::get('/employee/create', [EmployeeController::class, 'create'])->name('employee.create');
         Route::post('/employee', [EmployeeController::class, 'store'])->name('employee.store');
         Route::post('employee', [EmployeeController::class, 'store'])->name('employee.store');
-        Route::resource('employee', EmployeeController::class);
-        Route::get('archived', [EmployeeController::class, 'archived'])->name('employee.archived');
+    
+        Route::get('/employee/archived', [EmployeeController::class, 'archived'])->name('employee.archived');
+        
         Route::post('employee/{id}/unarchive', [EmployeeController::class, 'unarchive'])->name('employee.unarchive');
         Route::get('/employee/{employee}/edit', [EmployeeController::class, 'edit'])->name('employee.edit');
         Route::put('/employee/{employee}', [EmployeeController::class, 'update'])->name('employee.update');
