@@ -6,6 +6,38 @@ import Button from '@/components/ui/button/Button.vue';
 import Create from './Create.vue';
 import Edit from './Edit.vue';
 
+const excelForm = useForm({
+  excel_file: null as File | null,
+});
+
+const handleExcelUpload = (e: Event) => {
+  const input = e.target as HTMLInputElement;
+  if (!input.files?.length) return;
+
+  excelForm.excel_file = input.files[0];
+  excelForm.post(route('employee.import.excel'), {
+    forceFormData: true,               // important for file upload
+    onSuccess: () => {
+      alertMessage.value = 'Excel imported successfully';
+      alertType.value = 'success';
+      setTimeout(() => {
+        alertMessage.value = '';
+        alertType.value = '';
+      }, 3000);
+      // reset input so the same file can be re-uploaded
+      input.value = '';
+    },
+    onError: (errors) => {
+      alertMessage.value = Object.values(errors).join(', ');
+      alertType.value = 'error';
+      setTimeout(() => {
+        alertMessage.value = '';
+        alertType.value = '';
+      }, 5000);
+    },
+  });
+};
+
 interface Employee {
   id: number;
   first_name: string;
@@ -207,6 +239,18 @@ watch(
 </svg>
 
           </Link>
+               <!-- ==== NEW EXCEL UPLOAD BUTTON ==== -->
+  <label class="cursor-pointer bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center gap-1">
+    <svg class="w-4 h-4"></svg>
+    <span class="hidden sm:inline">Import Excel</span>
+    <input
+      ref="excelFileInput"
+      type="file"
+      accept=".xlsx,.xls"
+      class="hidden"
+      @change="handleExcelUpload"
+    />
+  </label>
         </div>
         <div class="relative w-full max-w-md">
           <input

@@ -17,6 +17,12 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
+
+
 
 class EmployeeController extends Controller
 {
@@ -726,4 +732,214 @@ class EmployeeController extends Controller
             return back()->withErrors(['general' => 'Failed to create assignment place: ' . $e->getMessage()])->withInput();
         }
     }
+
+public function importExcel(Request $request)
+    {
+        $request->validate([
+            'excel_file' => 'required|file|mimes:xlsx,xls',
+        ]);
+
+        $file = $request->file('excel_file');
+        $spreadsheet = IOFactory::load($file->getRealPath());
+        $sheet = $spreadsheet->getActiveSheet();
+        $rows = $sheet->toArray(null, true, true, true);
+
+        $header = array_shift($rows);
+        $header = array_map('trim', $header);
+
+        $columnMap = [
+            'fullname'        => ['fullname','full name','name','full_name'],
+            'sex'             => ['sex','gender'],
+            'email'           => ['email','email address','e-mail'],
+            'contact_no'      => ['contact_no','contact number','phone','mobile'],
+            'emp_status'      => ['emp_status','status','employment status'],
+            'item_code'       => ['item_code','item code','code'],
+            'position_name'   => ['position_name','position','job title'],
+            'salary_grade'    => ['salary_grade','sg','grade'],
+            'assignment_name' => ['assignment_name','assignments','place','assignment'],
+            'div_sec_unit'    => ['div_sec_unit','unit','division','org unit','org_unit'],
+            'date_of_birth'   => ['date_of_birth','dob','birth date','birthdate'],
+            'tin_no'          => ['tin_no','tin','tax id'],
+            'date_appointment'=> ['date_appointment','appointment date','appointment'],
+            'date_last_promotion'=>['date_last_promotion','last promotion','promotion date'],
+            'civil_service'   => ['civil_service','cs','csc'],
+            'education'       => ['education','educ','degree']
+        ];
+
+        $colIndex = [];
+        foreach ($columnMap as $required => $aliases) {
+            $found = false;
+            foreach ($header as $letter => $cell) {
+                if (in_array(strtolower($cell), $aliases)) {
+                    $colIndex[$required] = $letter;
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                throw ValidationException::withMessages([
+                    'excel_file' => "Required column '{$required}' not found. Found: " . implode(', ', $header),
+                ]);
+            }
+        }
+
+        DB::beginTransaction();
+        $imported = 0;
+        $errors = [];
+
+        foreach ($rows as $rowIdx => $row) {
+            try {
+                $fullName = trim($row[$colIndex['fullname']] ?? '');
+                if (!$fullName) continue;
+
+                [$lastName, $firstName, $middleName, $suffix] = $this->splitFullName($fullName);
+
+                // === POSITION ===
+                $itemCode = trim($row[$colIndex['item_code']] ?? '');
+                if (!$itemCode) {
+                    $errors[] = "Row " . ($rowIdx + 2) . ": item_code missing.";
+                    continue;
+                }
+                $position = Position::where('item_code', $itemCode)->first();
+                if (!$position) {
+                    $position = Position::create([
+                        'item_code'    => $itemCode,
+                        'name'         => trim($row[$colIndex['position_name']] ?? 'Unknown Position'),
+                        'salary_grade' => trim($row[$colIndex['salary_grade']] ?? null),
+                        'desc'         => null,
+                    ]);
+                    Log::info("Auto-created Position: {$itemCode}");
+                }
+
+                // === ASSIGNMENT PLACE ===
+                $assignmentName = trim($row[$colIndex['assignment_name']] ?? '');
+                if (!$assignmentName) {
+                    $errors[] = "Row " . ($rowIdx + 2) . ": assignment_name missing.";
+                    continue;
+                }
+                $assignment = AssignmentPlace::whereRaw('UPPER(name) = ?', [strtoupper($assignmentName)])->first();
+                if (!$assignment) {
+                    $assignment = AssignmentPlace::create(['name' => $assignmentName]);
+                    Log::info("Auto-created AssignmentPlace: {$assignmentName}");
+                }
+
+                // === ORG UNIT ===
+                $orgUnitName = trim($row[$colIndex['div_sec_unit']] ?? '');
+                if (!$orgUnitName) {
+                    $errors[] = "Row " . ($rowIdx + 2) . ": div_sec_unit missing.";
+                    continue;
+                }
+                $orgUnit = OrgUnit::whereRaw('UPPER(name) = ?', [strtoupper($orgUnitName)])->first();
+                if (!$orgUnit) {
+                    $orgUnit = OrgUnit::create([
+                        'name'     => $orgUnitName,
+                        'org_code' => Str::slug($orgUnitName, '_'),
+                    ]);
+                    Log::info("Auto-created OrgUnit: {$orgUnitName}");
+                }
+
+                // === UNIQUES ===
+                $email = trim($row[$colIndex['email']] ?? '');
+                $contact = trim($row[$colIndex['contact_no']] ?? '');
+
+                if ($email && Employee::where('email', $email)->exists()) {
+                    $errors[] = "Row " . ($rowIdx + 2) . ": Email {$email} already exists.";
+                    continue;
+                }
+                if ($contact && Employee::where('contact_no', $contact)->exists()) {
+                    $errors[] = "Row " . ($rowIdx + 2) . ": Contact {$contact} already exists.";
+                    continue;
+                }
+
+                // === USER ===
+                $user = User::create([
+                    'name'     => $fullName,
+                    'email'    => $email ?: null,
+                    'password' => Hash::make(Str::random(12)),
+                    'is_admin' => false,
+                ]);
+
+                // === EMPLOYEE ===
+                $employee = Employee::create([
+                    'first_name'      => $firstName,
+                    'middle_name'     => $middleName ?: null,
+                    'last_name'       => $lastName,
+                    'suffix'          => $suffix ?: null,
+                    'sex'             => strtoupper($row[$colIndex['sex']]) === 'MALE' ? 'M' : 'F',
+                    'email'           => $email,
+                    'contact_no'      => $contact,
+                    'emp_status'      => trim($row[$colIndex['emp_status']] ?? 'Active'),
+                    'position_name'   => $position->id,
+                    'assignment_name' => $assignment->id,
+                    'div_sec_unit'    => $orgUnit->id,
+                ]);
+
+                // === OTHER INFO ===
+                $employee->otherInfo()->create([
+                    'date_of_birth'       => $this->excelDateToYmd($row[$colIndex['date_of_birth']] ?? null),
+                    'tin_no'              => trim($row[$colIndex['tin_no']] ?? null),
+                    'date_appointment'    => $this->excelDateToYmd($row[$colIndex['date_appointment']] ?? null),
+                    'date_last_promotion' => $this->excelDateToYmd($row[$colIndex['date_last_promotion']] ?? null),
+                    'civil_service'       => trim($row[$colIndex['civil_service']] ?? null),
+                    'education'           => trim($row[$colIndex['education']] ?? null),
+                ]);
+
+                $imported++;
+            } catch (\Throwable $e) {
+                $errors[] = "Row " . ($rowIdx + 2) . ": " . $e->getMessage();
+            }
+        }
+
+        if ($errors) {
+            DB::rollBack();
+            return back()->withErrors(['excel_file' => $errors]);
+        }
+
+        DB::commit();
+        return redirect()->route('employee.index')
+            ->with('message', "Imported {$imported} employee(s) successfully.");
+    }
+
+    private function splitFullName(string $fullName): array
+    {
+        $suffixes = ['Jr', 'Sr', 'II', 'III', 'IV', 'V', 'PhD', 'MD'];
+        $parts = preg_split('/\s+/', trim($fullName));
+        if (empty($parts)) return ['', '', '', ''];
+
+        $suffix = '';
+        $last = array_pop($parts);
+
+        if (in_array(strtoupper($last), array_map('strtoupper', $suffixes))) {
+            $suffix = $last;
+            $last = array_pop($parts) ?? '';
+        }
+
+        $first = array_shift($parts) ?? '';
+        $middle = implode(' ', $parts);
+
+        return [$first, $middle, $last, $suffix];
+    }
+
+   private function excelDateToYmd($excelDate): ?string
+{
+    if (empty($excelDate) || !is_numeric($excelDate)) {
+        return null;
+    }
+
+    try {
+        $excelDate = (float)$excelDate;
+        // Excel dates start from 1900, valid range: ~1 to ~2958465
+        if ($excelDate < 1 || $excelDate > 3000000) {
+            Log::warning("Invalid Excel date (out of range): {$excelDate}");
+            return null;
+        }
+        $timestamp = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToTimestamp($excelDate);
+        return date('Y-m-d', $timestamp);
+    } catch (\Exception $e) {
+        Log::warning('Invalid Excel date', ['value' => $excelDate, 'error' => $e->getMessage()]);
+        return null;
+    }
+}
+
+
 }

@@ -43,7 +43,7 @@ Route::get('/profile', [ProfileController::class, 'show'])->name('profile'); // 
         Route::post('employee/salary-grade', [EmployeeController::class, 'storeSalaryGrade'])->name('employee.salaryGrade');
         Route::post('employee/assignment-place', [EmployeeController::class, 'storeAssignmentPlace'])->name('employee.assignmentPlace');
         Route::get('/employee/{employee}/view', [EmployeeController::class, 'view'])->name('employee.view');
-  
+  Route::post('/employee/import-excel', [EmployeeController::class, 'importExcel'])->name('employee.import.excel');
 
         Route::get('/users', [UsersController::class, 'index'])->name('users.index');
         Route::post('/users', [UsersController::class, 'store'])->name('users.store');
