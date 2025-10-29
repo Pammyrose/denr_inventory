@@ -315,7 +315,7 @@ const addAssignment = () => {
             </div>
 
             <!-- Status/Assignment/Email -->
-            <div class="grid grid-cols-3 gap-4 text-black">
+            <div class="grid grid-cols-4 gap-4 text-black">
                 <div>
                     <Label for="emp_status">Employee Status</Label>
                     <select id="emp_status" v-model="form.emp_status" class="w-full p-2 border rounded">

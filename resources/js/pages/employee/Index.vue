@@ -241,8 +241,11 @@ watch(
           </Link>
                <!-- ==== NEW EXCEL UPLOAD BUTTON ==== -->
   <label class="cursor-pointer bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md flex items-center gap-1">
-    <svg class="w-4 h-4"></svg>
-    <span class="hidden sm:inline">Import Excel</span>
+   
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+</svg>
+
     <input
       ref="excelFileInput"
       type="file"
@@ -363,8 +366,8 @@ watch(
               <th scope="row" class="px-4 py-1 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                 {{ employee.id || 'N/A' }}
               </th>
-              <td class="px-2 py-1 text-center">
-                {{ employee.first_name }} {{ employee.middle_name || '' }} {{ employee.last_name }} {{ employee.suffix || '' }}
+              <td class="px-2 py-1 text-center uppercase">
+                {{ employee.last_name }} {{ employee.first_name }} {{ employee.middle_name || '' }}{{ employee.suffix || '' }}
               </td>
               <td class="px-2 py-1 text-center">{{ employee.position_name || 'N/A' }}</td>
               <td class="px-2 py-1 text-center">{{ employee.assignment_name || 'N/A' }}</td>

@@ -64,6 +64,7 @@ const form = useForm({
     suffix: props.employee.suffix || '',
     sex: props.employee.sex || '',
     email: props.employee.email || '',
+    contact_no: props.employee.contact_no || '',
     password: '',
     password_confirmation: '',
     emp_status: props.employee.emp_status || '',
@@ -120,6 +121,7 @@ const validate = () => {
     if (!form.first_name) errors.value.first_name = 'First name is required';
     if (!form.last_name) errors.value.last_name = 'Last name is required';
     if (!form.email) errors.value.email = 'Email is required';
+    if (!form.contact_no) errors.value.contact_no = 'Contact No is required';
     if (!form.sex) errors.value.sex = 'Sex is required';
     if (!form.emp_status) errors.value.emp_status = 'Employee status is required';
     if (!form.position_id) errors.value.position_id = 'Position is required';
@@ -363,7 +365,7 @@ const addAssignment = () => {
                 </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-4 text-black">
+            <div class="grid grid-cols-4 gap-4 text-black">
 
                 <div>
                     <Label for="emp_status">Employee Status</Label>
@@ -405,6 +407,11 @@ const addAssignment = () => {
                     />
                     <span v-if="errors.email" class="text-red-600 text-sm">{{ errors.email }}</span>
                 </div>
+                                                              <div>
+                    <Label for="contact_no">Contact No.</Label>
+                    <Input id="contact_no" v-model="form.contact_no" />
+                    <span v-if="errors.contact_no" class="text-red-600 text-sm">{{ errors.contact_no }}</span>
+                </div>
             </div>
 
             <div class="grid grid-cols-3 gap-4 text-black">
@@ -437,6 +444,7 @@ const addAssignment = () => {
                     />
                     <span v-if="errors.civil_service" class="text-red-600 text-sm">{{ errors.civil_service }}</span>
                 </div>
+  
             </div>
 
             <div class="grid grid-cols-2 gap-4 text-black">
