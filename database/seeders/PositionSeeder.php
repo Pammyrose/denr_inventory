@@ -1,5 +1,7 @@
 <?php
+
 namespace Database\Seeders;
+
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -7,54 +9,39 @@ class PositionSeeder extends Seeder
 {
     public function run()
     {
-        // Ensure OrgUnitSeeder runs first
-        $this->call(OrgUnitSeeder::class);
+        $assignmentId = DB::table('assignments')->where('name', 'CAR')->value('id');
+        $unitId = DB::table('div_sec_units')->where('name', 'PLANNING AND MANAGEMENT DIVISION')->value('id');
 
-        DB::table('positions')->insert([
-            [
-                'id' => 1,
-                'item_code' => 'POS001',
-                'org_code' => 'ORG001',
-                'name' => 'Software Engineer',
-                'desc' => 'Develops and maintains software applications',
-                'salary_grade' => 'SG-15',
-                'status' => 'Active',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'id' => 2,
-                'item_code' => 'POS002',
-                'org_code' => 'ORG002',
-                'name' => 'Project Manager',
-                'desc' => 'Oversees project execution and team coordination',
-                'salary_grade' => 'SG-20',
-                'status' => 'Active',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'id' => 3,
-                'item_code' => 'POS003',
-                'org_code' => 'ORG003',
-                'name' => 'Data Analyst',
-                'desc' => 'Analyzes data to provide business insights',
-                'salary_grade' => 'SG-17',
-                'status' => 'Active',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'id' => 4,
-                'item_code' => 'POS004',
-                'org_code' => 'ORG004',
-                'name' => 'HR Specialist',
-                'desc' => 'Manages recruitment and employee relations',
-                'salary_grade' => 'SG-18',
-                'status' => 'Active',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ]);
+        $positions = [
+            ['OSEC-DENRB-PLO5-8-1998', 'Planning Officer V', 24],
+            ['OSEC-DENRB-PLO4-24-2014', 'Planning Officer IV', 22],
+            ['OSEC-DENRB-INFOSA3-31-2014', 'Information Systems Analyst III', 19],
+            ['OSEC-DENRB-PEO3-29-2014', 'Project Evaluation Officer III', 18],
+            ['OSEC-DENRB-PLO3-16-1998', 'Planning Officer III', 18],
+            ['OSEC-DENRB-INFOSA2-101-2014', 'Information Systems Analyst II', 16],
+            ['OSEC-DENRB-ADOF4-109-2014', 'Administrative Officer IV', 15],
+            ['OSEC-DENRB-PEO2-25-1998', 'Project Evaluation Officer II', 15],
+            ['OSEC-DENRB-PLO2-23-1998', 'Planning Officer II', 15],
+            ['OSEC-DENRB-STAT2-38-2014', 'Statistician II', 15],
+            ['OSEC-DENRB-STAT2-39-2014', 'Statistician II', 15],
+            ['OSEC-DENRB-PEO1-28-2014', 'Project Evaluation Officer I', 11],
+            ['OSEC-DENRB-PLO1-79-2014', 'Planning Officer I', 11],
+            ['OSEC-DENRB-STAT1-29-1998', 'Statistician I', 11],
+            ['OSEC-DENRB-STAT1-30-1998', 'Statistician I', 11],
+            ['OSEC-DENRB-ADAS3-102-2014', 'Administrative Assistant III (Computer Operator II)', 9],
+            ['OSEC-DENRB-ADAS1-182-2014', 'Administrative Assistant I (Computer Operator I)', 7],
+        ];
+
+        foreach ($positions as [$item_code, $name, $grade]) {
+            DB::table('positions')->updateOrInsert(
+                ['item_code' => $item_code],
+                [
+                    'name' => $name,
+                    'salary_grade' => $grade,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            );
+        }
     }
 }
